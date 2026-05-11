@@ -1,0 +1,4103 @@
+<html lang="en"><head>
+<script id="aura-supabase-token-firewall">(function () {
+  if (window.__AURA_SUPABASE_FIREWALL__) return;
+  window.__AURA_SUPABASE_FIREWALL__ = true;
+
+  var SUPABASE_HOST = "hoirqrkdgbmvpwutwuwj.supabase.co";
+  var BLOCKED_KEY_PATTERNS = [
+    /^sb-[a-z0-9-]+-auth-token$/i,
+    /^supabase\.auth\.token$/i
+  ];
+
+  function isBlockedStorageKey(key) {
+    if (typeof key !== "string") return false;
+    for (var i = 0; i < BLOCKED_KEY_PATTERNS.length; i++) {
+      if (BLOCKED_KEY_PATTERNS[i].test(key)) return true;
+    }
+    return false;
+  }
+
+  function toAbsoluteUrl(input) {
+    try {
+      return new URL(input, window.location.href);
+    } catch {
+      return null;
+    }
+  }
+
+  function isSupabaseDestination(input) {
+    var parsed = toAbsoluteUrl(input);
+    if (!parsed) return false;
+    if (SUPABASE_HOST && parsed.host === SUPABASE_HOST) return true;
+    return parsed.host.endsWith(".supabase.co");
+  }
+
+  function pathLooksSensitive(input) {
+    var parsed = toAbsoluteUrl(input);
+    if (!parsed) return false;
+    return /^\/(auth|rest|functions)\/v1\//.test(parsed.pathname || "");
+  }
+
+  function headersContainAuth(headersLike) {
+    if (!headersLike) return false;
+
+    try {
+      if (typeof Headers !== "undefined" && headersLike instanceof Headers) {
+        return !!(headersLike.get("authorization") || headersLike.get("apikey"));
+      }
+    } catch {}
+
+    if (Array.isArray(headersLike)) {
+      for (var i = 0; i < headersLike.length; i++) {
+        var pair = headersLike[i] || [];
+        var name = String(pair[0] || "").toLowerCase();
+        if (name === "authorization" || name === "apikey") return true;
+      }
+      return false;
+    }
+
+    if (typeof headersLike === "object") {
+      var keys = Object.keys(headersLike);
+      for (var j = 0; j < keys.length; j++) {
+        var k = keys[j].toLowerCase();
+        if (k === "authorization" || k === "apikey") return true;
+      }
+    }
+    return false;
+  }
+
+  function requestLooksSensitive(input, init, extraHeaders) {
+    var url = "";
+    try {
+      if (typeof input === "string") {
+        url = input;
+      } else if (input && typeof input.url === "string") {
+        url = input.url;
+      }
+    } catch {}
+
+    var headers =
+      (init && init.headers) ||
+      (input && input.headers) ||
+      extraHeaders ||
+      null;
+    var hasAuthHeaders = headersContainAuth(headers);
+    if (hasAuthHeaders) return true;
+
+    if (!url) return false;
+    if (isSupabaseDestination(url) && pathLooksSensitive(url)) return true;
+    return false;
+  }
+
+  function patchStorage(storage, storageName) {
+    if (!storage) return;
+    var proto = Object.getPrototypeOf(storage);
+    if (!proto || proto.__auraSupabaseFirewallPatched) return;
+
+    var rawGetItem = proto.getItem;
+    var rawSetItem = proto.setItem;
+    var rawRemoveItem = proto.removeItem;
+    var rawClear = proto.clear;
+    var rawKey = proto.key;
+    var rawLengthDescriptor = Object.getOwnPropertyDescriptor(proto, "length");
+    var rawLengthGet = rawLengthDescriptor && rawLengthDescriptor.get;
+
+    function getRawLength(instance) {
+      try {
+        if (rawLengthGet) return Number(rawLengthGet.call(instance) || 0);
+      } catch {}
+      try {
+        return Number(instance.length || 0);
+      } catch {}
+      return 0;
+    }
+
+    function getVisibleKeys(instance) {
+      var visible = [];
+      var total = getRawLength(instance);
+      for (var i = 0; i < total; i++) {
+        var currentKey = rawKey.call(instance, i);
+        if (currentKey && !isBlockedStorageKey(currentKey)) {
+          visible.push(currentKey);
+        }
+      }
+      return visible;
+    }
+
+    function maskBlockedKeyProperty(instance, keyName) {
+      if (!keyName || !isBlockedStorageKey(keyName)) return;
+      try {
+        Object.defineProperty(instance, keyName, {
+          configurable: true,
+          enumerable: false,
+          get: function () {
+            return null;
+          },
+          set: function () {
+            return true;
+          }
+        });
+      } catch {}
+    }
+
+    function syncBlockedKeyProperties(instance) {
+      var total = getRawLength(instance);
+      for (var i = 0; i < total; i++) {
+        var k = rawKey.call(instance, i);
+        if (k) maskBlockedKeyProperty(instance, k);
+      }
+    }
+
+    proto.getItem = function (key) {
+      syncBlockedKeyProperties(this);
+      if (isBlockedStorageKey(String(key))) return null;
+      return rawGetItem.call(this, key);
+    };
+
+    proto.setItem = function (key, value) {
+      if (isBlockedStorageKey(String(key))) return;
+      return rawSetItem.call(this, key, value);
+    };
+
+    proto.removeItem = function (key) {
+      if (isBlockedStorageKey(String(key))) return;
+      return rawRemoveItem.call(this, key);
+    };
+
+    proto.clear = function () {
+      if (typeof rawClear !== "function") return;
+
+      // Preserve blocked keys across clear() to prevent auth token/session wipe.
+      var preservedBlockedEntries = [];
+      var total = getRawLength(this);
+      for (var i = 0; i < total; i++) {
+        var blockedKey = rawKey.call(this, i);
+        if (blockedKey && isBlockedStorageKey(blockedKey)) {
+          preservedBlockedEntries.push([
+            blockedKey,
+            rawGetItem.call(this, blockedKey),
+          ]);
+        }
+      }
+
+      rawClear.call(this);
+
+      for (var j = 0; j < preservedBlockedEntries.length; j++) {
+        var entry = preservedBlockedEntries[j];
+        var key = entry[0];
+        var value = entry[1];
+        if (typeof key === "string" && typeof value === "string") {
+          rawSetItem.call(this, key, value);
+        }
+      }
+
+      syncBlockedKeyProperties(this);
+    };
+
+    proto.key = function (index) {
+      syncBlockedKeyProperties(this);
+      var visible = getVisibleKeys(this);
+      return visible[index] || null;
+    };
+
+    try {
+      Object.defineProperty(proto, "length", {
+        configurable: true,
+        enumerable: false,
+        get: function () {
+          syncBlockedKeyProperties(this);
+          return getVisibleKeys(this).length;
+        }
+      });
+    } catch {}
+
+    var proxyStorage = null;
+    try {
+      proxyStorage = new Proxy(storage, {
+        get: function (target, prop) {
+          if (typeof prop === "string" && isBlockedStorageKey(prop)) return null;
+          if (prop === "length") return getVisibleKeys(target).length;
+          if (prop === "key") {
+            return function (index) {
+              var visible = getVisibleKeys(target);
+              return visible[index] || null;
+            };
+          }
+          if (prop === "clear") {
+            return function () {
+              if (typeof rawClear !== "function") return;
+
+              var preservedBlockedEntries = [];
+              var total = getRawLength(target);
+              for (var i = 0; i < total; i++) {
+                var blockedKey = rawKey.call(target, i);
+                if (blockedKey && isBlockedStorageKey(blockedKey)) {
+                  preservedBlockedEntries.push([
+                    blockedKey,
+                    rawGetItem.call(target, blockedKey),
+                  ]);
+                }
+              }
+
+              rawClear.call(target);
+
+              for (var j = 0; j < preservedBlockedEntries.length; j++) {
+                var entry = preservedBlockedEntries[j];
+                var key = entry[0];
+                var value = entry[1];
+                if (typeof key === "string" && typeof value === "string") {
+                  rawSetItem.call(target, key, value);
+                }
+              }
+
+              syncBlockedKeyProperties(target);
+            };
+          }
+
+          var value = target[prop];
+          if (typeof value === "function") return value.bind(target);
+          return value;
+        },
+        set: function (target, prop, value) {
+          if (typeof prop === "string" && isBlockedStorageKey(prop)) return true;
+          target[prop] = value;
+          return true;
+        },
+        has: function (target, prop) {
+          if (typeof prop === "string" && isBlockedStorageKey(prop)) return false;
+          return prop in target;
+        },
+        deleteProperty: function (target, prop) {
+          if (typeof prop === "string" && isBlockedStorageKey(prop)) return true;
+          try {
+            delete target[prop];
+          } catch {}
+          return true;
+        },
+        ownKeys: function (target) {
+          return getVisibleKeys(target);
+        },
+        getOwnPropertyDescriptor: function (target, prop) {
+          if (typeof prop === "string" && isBlockedStorageKey(prop)) {
+            return undefined;
+          }
+          if (prop === "length") {
+            return {
+              configurable: true,
+              enumerable: false,
+              value: getVisibleKeys(target).length,
+              writable: false
+            };
+          }
+          return Object.getOwnPropertyDescriptor(target, prop);
+        }
+      });
+    } catch {}
+
+    try {
+      if (proxyStorage) {
+        Object.defineProperty(window, storageName, {
+          configurable: true,
+          enumerable: true,
+          get: function () {
+            return proxyStorage;
+          }
+        });
+      }
+    } catch {}
+
+    syncBlockedKeyProperties(storage);
+    proto.__auraSupabaseFirewallPatched = true;
+  }
+
+  function patchCookieAccess() {
+    try {
+      var cookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
+      if (!cookieDescriptor || !cookieDescriptor.configurable) return;
+
+      Object.defineProperty(document, "cookie", {
+        configurable: true,
+        enumerable: false,
+        get: function () {
+          return "";
+        },
+        set: function () {
+          return true;
+        }
+      });
+    } catch {}
+  }
+
+  function patchFetch() {
+    if (typeof window.fetch !== "function") return;
+    var rawFetch = window.fetch.bind(window);
+    window.fetch = function (input, init) {
+      if (requestLooksSensitive(input, init, null)) {
+        return Promise.reject(new Error("Blocked by Aura security policy"));
+      }
+      return rawFetch(input, init);
+    };
+  }
+
+  function patchXHR() {
+    if (typeof XMLHttpRequest === "undefined") return;
+    var rawOpen = XMLHttpRequest.prototype.open;
+    var rawSetHeader = XMLHttpRequest.prototype.setRequestHeader;
+    var rawSend = XMLHttpRequest.prototype.send;
+
+    XMLHttpRequest.prototype.open = function (method, url) {
+      this.__auraRequestUrl = String(url || "");
+      this.__auraHeaders = {};
+      return rawOpen.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+      if (!this.__auraHeaders) this.__auraHeaders = {};
+      this.__auraHeaders[String(name || "").toLowerCase()] = String(value || "");
+      return rawSetHeader.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.send = function () {
+      if (requestLooksSensitive(this.__auraRequestUrl || "", null, this.__auraHeaders || null)) {
+        throw new Error("Blocked by Aura security policy");
+      }
+      return rawSend.apply(this, arguments);
+    };
+  }
+
+  function patchBeacon() {
+    if (typeof navigator.sendBeacon !== "function") return;
+    var rawBeacon = navigator.sendBeacon.bind(navigator);
+    navigator.sendBeacon = function (url, data) {
+      if (requestLooksSensitive(url, null, null)) return false;
+      return rawBeacon(url, data);
+    };
+  }
+
+  function patchWebSocket() {
+    if (typeof WebSocket === "undefined") return;
+    var RawWebSocket = WebSocket;
+    window.WebSocket = function (url, protocols) {
+      if (requestLooksSensitive(String(url || ""), null, null)) {
+        throw new Error("Blocked by Aura security policy");
+      }
+      return new RawWebSocket(url, protocols);
+    };
+    window.WebSocket.prototype = RawWebSocket.prototype;
+  }
+
+  patchStorage(window.localStorage, "localStorage");
+  patchStorage(window.sessionStorage, "sessionStorage");
+  patchCookieAccess();
+  patchFetch();
+  patchXHR();
+  patchBeacon();
+  patchWebSocket();
+})();</script><meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RelayEstate AI - Real Estate Lead Automation</title>
+<script src="assets/resource_3fa48481346f"></script>
+<script src="assets/lucide_latest_2eebd0ebe8c2"></script>
+<style>
+@import url("css2_b9721042d3fe.css");
+/* =========================================================
+GLOBAL / FOUNDATION
+========================================================= */
+:root {
+--bg-ink: #120F0C;
+--bg-deep: #241A14;
+--bg-slate: #34251C;
+--surface-cream: #F4EFE7;
+--surface-stone: #E7D8C6;
+--accent-copper: #C98755;
+--accent-gold: #D6A85F;
+--text-dark: #18130F;
+--text-light: #FBF6EE;
+--text-muted: #B8A99B;
+--text-muted-dark: #786957;
+--border-dark: rgba(255, 255, 255, 0.10);
+--border-light: rgba(24, 19, 15, 0.12);
+--radius-md: 20px;
+--radius-lg: 28px;
+--transition-smooth: 220ms ease;
+}
+* {
+box-sizing: border-box;
+}
+html {
+scroll-behavior: smooth;
+}
+body {
+margin: 0;
+font-family: 'Inter', sans-serif;
+color: var(--text-light);
+background: var(--bg-ink);
+overflow-x: hidden;
+-webkit-font-smoothing: antialiased;
+text-rendering: optimizeLegibility;
+}
+h1,
+h2,
+h3,
+h4 {
+font-family: 'Sora', sans-serif;
+letter-spacing: -0.045em;
+line-height: 1.05;
+}
+p {
+line-height: 1.7;
+}
+a {
+color: inherit;
+text-decoration: none;
+}
+/* =========================================================
+SHARED COMPONENTS
+========================================================= */
+.btn {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 0.5rem;
+border-radius: 999px;
+padding: 0.85rem 1.35rem;
+font-size: 0.78rem;
+font-weight: 700;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+transition: transform var(--transition-smooth),
+background var(--transition-smooth),
+box-shadow var(--transition-smooth);
+}
+.btn-primary {
+color: var(--text-dark);
+background: linear-gradient(135deg, #F1C08A, var(--accent-copper));
+box-shadow: 0 14px 40px rgba(201, 135, 85, 0.28);
+}
+.btn-primary:hover {
+transform: translateY(-2px);
+box-shadow: 0 18px 55px rgba(201, 135, 85, 0.36);
+}
+.section-slant-bottom {
+clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4vw), 0 100%);
+padding-bottom: 8vw;
+margin-bottom: -4vw;
+}
+.section-slant-top {
+clip-path: polygon(0 4vw, 100% 0, 100% 100%, 0 100%);
+padding-top: 8vw;
+margin-top: -4vw;
+}
+.section-slant-both {
+clip-path: polygon(0 4vw, 100% 0, 100% calc(100% - 4vw), 0 100%);
+padding-top: 8vw;
+padding-bottom: 8vw;
+margin-top: -4vw;
+margin-bottom: -4vw;
+}
+.grain-overlay {
+position: relative;
+}
+.grain-overlay::after {
+content: "";
+position: absolute;
+inset: 0;
+pointer-events: none;
+opacity: 0.12;
+z-index: 1;
+background-image:
+radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.24) 1px, transparent 0);
+background-size: 18px 18px;
+mix-blend-mode: overlay;
+}
+.content-layer {
+position: relative;
+z-index: 2;
+}
+.section-shell {
+max-width: 1280px;
+margin: 0 auto;
+}
+.section-header {
+max-width: 840px;
+}
+.section-eyebrow {
+display: inline-flex;
+align-items: center;
+gap: 0.65rem;
+margin-bottom: 1.35rem;
+color: rgba(251, 246, 238, 0.62);
+font-size: 0.74rem;
+font-weight: 800;
+letter-spacing: 0.17em;
+text-transform: uppercase;
+}
+.section-eyebrow.dark {
+color: rgba(24, 19, 15, 0.58);
+}
+.eyebrow-dot {
+width: 8px;
+height: 8px;
+border-radius: 999px;
+background: var(--accent-copper);
+box-shadow: 0 0 24px rgba(201, 135, 85, 0.65);
+}
+.section-title {
+margin: 0;
+font-size: clamp(2.4rem, 4.5vw, 4.8rem);
+letter-spacing: -0.065em;
+}
+.section-title.dark {
+color: var(--text-dark);
+}
+.section-title.light {
+color: var(--text-light);
+}
+.section-text {
+max-width: 720px;
+margin: 1.2rem 0 0;
+font-size: 1.05rem;
+}
+.section-text.dark {
+color: var(--text-muted-dark);
+}
+.section-text.light {
+color: rgba(251, 246, 238, 0.68);
+}
+/* =========================================================
+SECTION 0 / NAVIGATION
+========================================================= */
+.site-nav {
+position: fixed;
+top: 0;
+inset-inline: 0;
+z-index: 80;
+background: rgba(244, 239, 231, 0.94);
+border-bottom: 1px solid rgba(24, 19, 15, 0.08);
+backdrop-filter: blur(18px);
+color: var(--text-dark);
+transition: background var(--transition-smooth),
+box-shadow var(--transition-smooth);
+}
+.site-nav.is-scrolled {
+background: rgba(244, 239, 231, 0.98);
+box-shadow: 0 16px 50px rgba(24, 19, 15, 0.08);
+}
+.nav-shell {
+max-width: 1440px;
+height: 78px;
+margin: 0 auto;
+padding: 0 2rem;
+display: grid;
+grid-template-columns: 1fr auto 1fr;
+align-items: center;
+}
+.nav-left,
+.nav-right {
+display: flex;
+align-items: center;
+gap: 2.4rem;
+}
+.nav-right {
+justify-content: flex-end;
+}
+.nav-link {
+color: rgba(24, 19, 15, 0.78);
+font-size: 0.95rem;
+font-weight: 700;
+transition: color var(--transition-smooth);
+}
+.nav-link:hover {
+color: var(--text-dark);
+}
+.brand-lockup {
+display: inline-flex;
+align-items: center;
+gap: 0.55rem;
+color: var(--text-dark);
+}
+.brand-mark {
+width: 30px;
+height: 30px;
+border-radius: 10px;
+display: grid;
+place-items: center;
+color: var(--text-dark);
+background: linear-gradient(135deg, #F1C08A, var(--accent-copper));
+}
+.brand-name {
+font-family: 'Sora', sans-serif;
+font-size: 1.35rem;
+font-weight: 800;
+letter-spacing: -0.07em;
+}
+.nav-cta {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 0.45rem;
+padding: 0.82rem 1.35rem;
+border-radius: 999px;
+background: var(--text-dark);
+color: var(--surface-cream);
+font-size: 0.88rem;
+font-weight: 800;
+transition: transform var(--transition-smooth),
+background var(--transition-smooth);
+}
+.nav-cta:hover {
+transform: translateY(-1px);
+background: #2A211A;
+}
+.mobile-menu-btn {
+display: none;
+width: 42px;
+height: 42px;
+border: 1px solid rgba(24, 19, 15, 0.12);
+border-radius: 999px;
+color: var(--text-dark);
+background: transparent;
+align-items: center;
+justify-content: center;
+}
+/* =========================================================
+SECTION 1 / HERO
+========================================================= */
+@keyframes revealFlow {
+0% {
+opacity: 0;
+transform: translateY(34px) scale(0.985);
+filter: blur(10px);
+}
+100% {
+opacity: 1;
+transform: translateY(0) scale(1);
+filter: blur(0);
+}
+}
+.reveal-item {
+opacity: 0;
+will-change: transform, opacity, filter;
+}
+.reveal-active {
+animation: revealFlow 1.1s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+}
+.delay-100 {
+animation-delay: 100ms;
+}
+.delay-200 {
+animation-delay: 200ms;
+}
+.delay-300 {
+animation-delay: 300ms;
+}
+.hero-section {
+position: relative;
+min-height: 100vh;
+overflow: hidden;
+color: var(--text-light);
+background: var(--bg-ink);
+}
+.hero-bg-layer {
+position: absolute;
+inset: 0;
+z-index: 0;
+overflow: hidden;
+}
+.hero-bg-layer img {
+position: absolute;
+inset: -8% 0 auto 0;
+width: 100%;
+height: 116%;
+object-fit: cover;
+opacity: 0.82;
+filter: saturate(0.92) contrast(1.02) brightness(1.04);
+mix-blend-mode: normal;
+will-change: transform;
+}
+.hero-bg-layer::before {
+content: "";
+position: absolute;
+inset: 0;
+z-index: 2;
+background:
+radial-gradient(circle at 70% 32%, rgba(201, 135, 85, 0.14), transparent 36%),
+linear-gradient(90deg, rgba(18, 15, 12, 0.58), rgba(18, 15, 12, 0.22) 48%, rgba(18, 15, 12, 0.5)),
+linear-gradient(180deg, rgba(18, 15, 12, 0.16), transparent 42%, rgba(18, 15, 12, 0.72));
+}
+.hero-bg-layer::after {
+content: "";
+position: absolute;
+inset: 0;
+z-index: 3;
+background-image:
+linear-gradient(rgba(251, 246, 238, 0.055) 1px, transparent 1px),
+linear-gradient(90deg, rgba(251, 246, 238, 0.055) 1px, transparent 1px);
+background-size: 72px 72px;
+opacity: 0.16;
+mask-image: radial-gradient(circle at 55% 50%, black, transparent 72%);
+}
+.hero-content-wrap {
+position: relative;
+z-index: 5;
+min-height: 100vh;
+max-width: 1440px;
+margin: 0 auto;
+padding: 8.75rem 1.5rem 7rem;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+}
+.hero-topline {
+display: flex;
+justify-content: space-between;
+gap: 2rem;
+color: rgba(251, 246, 238, 0.52);
+font-size: 0.76rem;
+font-weight: 800;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+}
+.hero-topline-left,
+.hero-topline-right {
+display: grid;
+gap: 0.45rem;
+}
+.hero-topline-right {
+text-align: right;
+}
+.hero-topline small {
+color: rgba(251, 246, 238, 0.66);
+font-size: 0.78rem;
+font-weight: 600;
+letter-spacing: 0.02em;
+text-transform: none;
+}
+.hero-bottom {
+display: grid;
+grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.55fr);
+gap: 4rem;
+align-items: end;
+}
+.hero-title {
+max-width: 980px;
+margin: 0;
+color: var(--text-light);
+font-size: clamp(3.8rem, 8vw, 8.4rem);
+font-weight: 500;
+line-height: 1.03;
+letter-spacing: -0.085em;
+}
+.hero-side {
+max-width: 410px;
+justify-self: end;
+}
+.hero-text {
+margin: 0;
+color: rgba(251, 246, 238, 0.8);
+font-size: 1.06rem;
+}
+.hero-cta {
+margin-top: 1.6rem;
+}
+.hero-chip-row {
+display: flex;
+flex-wrap: wrap;
+gap: 0.6rem;
+margin-top: 1.4rem;
+}
+.hero-chip {
+display: inline-flex;
+align-items: center;
+gap: 0.45rem;
+padding: 0.55rem 0.75rem;
+border: 1px solid rgba(251, 246, 238, 0.12);
+border-radius: 999px;
+background: rgba(18, 15, 12, 0.48);
+color: rgba(251, 246, 238, 0.68);
+backdrop-filter: blur(12px);
+font-size: 0.7rem;
+font-weight: 800;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+}
+.hero-chip i {
+color: var(--accent-gold);
+}
+/* =========================================================
+SECTION 2 / DIAGNOSTIC TIMELINE
+========================================================= */
+.diagnostic-section {
+position: relative;
+z-index: 3;
+padding: 8rem 1.5rem 9rem;
+background:
+radial-gradient(circle at 12% 10%, rgba(185, 130, 90, 0.14), transparent 26%),
+linear-gradient(135deg, var(--surface-cream) 0%, var(--surface-stone) 100%);
+color: var(--text-dark);
+}
+.diagnostic-shell {
+max-width: 1240px;
+margin: 0 auto;
+}
+.diagnostic-header {
+max-width: 820px;
+margin: 0 auto 4.5rem;
+text-align: center;
+}
+.diagnostic-header .section-eyebrow {
+justify-content: center;
+}
+.diagnostic-header .section-text {
+max-width: 780px;
+margin-left: auto;
+margin-right: auto;
+}
+.diagnostic-track {
+position: relative;
+max-width: 980px;
+margin: 0 auto;
+}
+.diagnostic-rail {
+position: absolute;
+left: 50%;
+top: 0.75rem;
+bottom: 3.5rem;
+width: 16px;
+transform: translateX(-50%);
+border: 1px solid rgba(24, 19, 15, 0.10);
+border-radius: 999px;
+background: rgba(255, 255, 255, 0.42);
+box-shadow: inset 0 2px 10px rgba(24, 19, 15, 0.06);
+overflow: hidden;
+}
+.diagnostic-rail::before {
+content: "";
+position: absolute;
+inset: 12px 5px;
+border-radius: 999px;
+background: rgba(24, 19, 15, 0.08);
+}
+.diagnostic-rail-glow {
+position: absolute;
+left: 5px;
+top: -90px;
+width: 4px;
+height: 90px;
+border-radius: 999px;
+background: linear-gradient(to bottom, transparent, rgba(201, 135, 85, 0.95), transparent);
+box-shadow: 0 0 18px rgba(201, 135, 85, 0.45);
+animation: diagnosticFlow 3.8s linear infinite;
+}
+@keyframes diagnosticFlow {
+0% {
+top: -90px;
+opacity: 0;
+}
+15% {
+opacity: 1;
+}
+85% {
+opacity: 1;
+}
+100% {
+top: calc(100% + 90px);
+opacity: 0;
+}
+}
+.diagnostic-step {
+position: relative;
+z-index: 2;
+display: flex;
+align-items: center;
+gap: 2.2rem;
+margin-bottom: 3rem;
+}
+.diagnostic-step:last-child {
+margin-bottom: 0;
+}
+.diagnostic-step.reverse {
+flex-direction: row-reverse;
+}
+.diagnostic-copy,
+.diagnostic-card-wrap {
+width: calc(50% - 34px);
+}
+.diagnostic-copy {
+display: flex;
+flex-direction: column;
+}
+.diagnostic-step.reverse .diagnostic-copy {
+text-align: left;
+}
+.diagnostic-step:not(.reverse) .diagnostic-copy {
+text-align: right;
+align-items: flex-end;
+}
+.diagnostic-badge {
+display: inline-flex;
+align-items: center;
+gap: 0.45rem;
+width: fit-content;
+padding: 0.46rem 0.8rem;
+margin-bottom: 0.9rem;
+border: 1px solid rgba(201, 135, 85, 0.22);
+border-radius: 999px;
+background: rgba(201, 135, 85, 0.08);
+color: var(--accent-copper);
+font-size: 0.65rem;
+font-weight: 800;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+}
+.diagnostic-copy h3 {
+margin: 0;
+color: var(--text-dark);
+font-size: 2rem;
+letter-spacing: -0.055em;
+}
+.diagnostic-copy p {
+max-width: 420px;
+margin: 0.75rem 0 0;
+color: var(--text-muted-dark);
+font-size: 0.96rem;
+}
+.diagnostic-node {
+position: relative;
+width: 44px;
+height: 44px;
+flex: 0 0 44px;
+border-radius: 999px;
+border: 1px solid rgba(24, 19, 15, 0.12);
+background: rgba(255, 255, 255, 0.72);
+display: grid;
+place-items: center;
+box-shadow: 0 10px 24px rgba(24, 19, 15, 0.08);
+}
+.diagnostic-node::before {
+content: "";
+width: 12px;
+height: 12px;
+border-radius: 999px;
+background: var(--accent-copper);
+box-shadow: 0 0 14px rgba(201, 135, 85, 0.42);
+}
+.diagnostic-card {
+padding: 1.15rem;
+border: 1px solid rgba(24, 19, 15, 0.10);
+border-radius: 22px;
+background:
+linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.42)),
+rgba(255, 255, 255, 0.44);
+box-shadow: 0 18px 44px rgba(24, 19, 15, 0.08);
+}
+.diagnostic-card-top {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+margin-bottom: 0.9rem;
+}
+.diagnostic-card-icon {
+width: 46px;
+height: 46px;
+border-radius: 16px;
+display: grid;
+place-items: center;
+color: var(--accent-copper);
+background: rgba(201, 135, 85, 0.10);
+border: 1px solid rgba(201, 135, 85, 0.18);
+flex: 0 0 46px;
+}
+.diagnostic-card-top strong {
+color: var(--text-dark);
+font-size: 0.88rem;
+font-weight: 800;
+letter-spacing: -0.03em;
+}
+.diagnostic-list {
+margin: 0;
+padding-left: 1rem;
+color: var(--text-muted-dark);
+}
+.diagnostic-list li {
+margin: 0.45rem 0;
+font-size: 0.82rem;
+line-height: 1.5;
+}
+.diagnostic-footer {
+margin-top: 3rem;
+text-align: center;
+}
+.diagnostic-footer span {
+color: rgba(24, 19, 15, 0.44);
+font-size: 0.72rem;
+font-weight: 800;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+}
+/* =========================================================
+SECTION 3 / SOLUTION ARCHITECTURE
+========================================================= */
+.automate-section {
+position: relative;
+z-index: 4;
+padding: 9rem 1.5rem 10rem;
+background:
+radial-gradient(circle at 82% 18%, rgba(201, 135, 85, 0.14), transparent 30%),
+radial-gradient(circle at 12% 92%, rgba(214, 168, 95, 0.10), transparent 26%),
+linear-gradient(135deg, #17120E 0%, #221914 48%, #2D211A 100%);
+color: var(--text-light);
+overflow: hidden;
+}
+.automate-section::before {
+content: "";
+position: absolute;
+inset: 0;
+pointer-events: none;
+opacity: 0.16;
+background-image:
+linear-gradient(rgba(251, 246, 238, 0.04) 1px, transparent 1px),
+linear-gradient(90deg, rgba(251, 246, 238, 0.04) 1px, transparent 1px);
+background-size: 72px 72px;
+}
+.automate-shell {
+position: relative;
+z-index: 2;
+max-width: 1240px;
+margin: 0 auto;
+}
+.automate-header-grid {
+display: grid;
+grid-template-columns: minmax(0, 1fr) minmax(320px, 0.48fr);
+gap: 3rem;
+align-items: end;
+margin-bottom: 3rem;
+}
+.automate-header-copy {
+max-width: 760px;
+}
+.automate-side-copy {
+max-width: 360px;
+justify-self: end;
+}
+.automate-side-copy p {
+margin: 0;
+color: rgba(251, 246, 238, 0.68);
+font-size: 1rem;
+}
+.automate-stage {
+position: relative;
+border: 1px solid rgba(244, 239, 231, 0.10);
+border-radius: 30px;
+background:
+linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.025)),
+linear-gradient(135deg, rgba(54, 39, 30, 0.62), rgba(38, 28, 22, 0.66));
+box-shadow: 0 26px 80px rgba(0, 0, 0, 0.20);
+overflow: hidden;
+}
+.automate-stage::before {
+content: "";
+position: absolute;
+inset: 0;
+padding: 1px;
+border-radius: 30px;
+background: linear-gradient(
+180deg,
+rgba(241, 192, 138, 0.20) 0%,
+rgba(201, 135, 85, 0.10) 24%,
+rgba(45, 33, 26, 0) 100%
+);
+-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+-webkit-mask-composite: xor;
+mask-composite: exclude;
+pointer-events: none;
+}
+.automate-engine-shell {
+position: relative;
+z-index: 2;
+width: min(92%, 940px);
+margin: 3.5rem auto 0;
+border-top-left-radius: 22px;
+border-top-right-radius: 22px;
+border: 1px solid rgba(244, 239, 231, 0.10);
+border-bottom: 0;
+background:
+linear-gradient(180deg, rgba(58, 42, 33, 0.76), rgba(42, 31, 25, 0.88)),
+rgba(42, 31, 25, 0.86);
+box-shadow: 0 18px 54px rgba(0, 0, 0, 0.18);
+overflow: hidden;
+}
+.automate-engine-top-glow {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 1px;
+background: linear-gradient(90deg, transparent, rgba(201, 135, 85, 0.72), transparent);
+box-shadow: 0 0 14px 1px rgba(201, 135, 85, 0.34);
+z-index: 3;
+}
+.automate-engine-windowbar {
+display: flex;
+gap: 0.4rem;
+padding: 1rem 1rem 0.9rem;
+border-bottom: 1px solid rgba(244, 239, 231, 0.08);
+background: rgba(52, 38, 30, 0.72);
+backdrop-filter: blur(10px);
+}
+.automate-engine-windowbar span {
+width: 9px;
+height: 9px;
+border-radius: 999px;
+background: rgba(251, 246, 238, 0.26);
+}
+.automate-engine-header {
+display: flex;
+flex-direction: column;
+gap: 1rem;
+padding: 1.5rem;
+border-bottom: 1px solid rgba(244, 239, 231, 0.08);
+background: rgba(58, 42, 33, 0.58);
+}
+.automate-engine-title-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 1rem;
+}
+.automate-engine-title-row h3 {
+margin: 0;
+color: var(--text-light);
+font-size: 1.8rem;
+font-weight: 500;
+letter-spacing: -0.05em;
+}
+.automate-engine-stats {
+display: flex;
+flex-wrap: wrap;
+gap: 1.25rem;
+color: rgba(251, 246, 238, 0.58);
+font-size: 0.84rem;
+}
+.automate-engine-stats span {
+display: inline-flex;
+align-items: center;
+gap: 0.45rem;
+}
+.automate-engine-stats i {
+color: var(--accent-copper);
+}
+.automate-engine-grid {
+position: relative;
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+border-top: 1px solid rgba(244, 239, 231, 0.06);
+background:
+linear-gradient(180deg, rgba(48, 35, 28, 0.62), rgba(33, 24, 20, 0.86));
+}
+.automate-engine-grid::before {
+content: "";
+position: absolute;
+inset: 0;
+background-image:
+linear-gradient(rgba(251, 246, 238, 0.03) 1px, transparent 1px),
+linear-gradient(90deg, rgba(251, 246, 238, 0.03) 1px, transparent 1px);
+background-size: 28px 28px;
+opacity: 0.24;
+pointer-events: none;
+}
+.automate-engine-cell {
+position: relative;
+min-height: 240px;
+padding: 1rem;
+border-right: 1px solid rgba(244, 239, 231, 0.08);
+z-index: 2;
+}
+.automate-engine-cell:last-child {
+border-right: 0;
+}
+.automate-engine-col-label {
+margin-bottom: 0.75rem;
+color: rgba(251, 246, 238, 0.34);
+font-size: 0.68rem;
+font-weight: 800;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+}
+.automate-engine-flow-card {
+position: relative;
+padding: 0.9rem;
+border-radius: 16px;
+border: 1px solid rgba(201, 135, 85, 0.18);
+background: rgba(201, 135, 85, 0.08);
+overflow: hidden;
+}
+.automate-engine-flow-card::before {
+content: "";
+position: absolute;
+left: 0;
+top: 0;
+width: 2px;
+height: 100%;
+background: var(--accent-copper);
+box-shadow: 0 0 10px rgba(201, 135, 85, 0.82);
+}
+.automate-engine-flow-card.blue {
+border-color: rgba(214, 168, 95, 0.18);
+background: rgba(214, 168, 95, 0.08);
+}
+.automate-engine-flow-card.blue::before {
+background: var(--accent-gold);
+box-shadow: 0 0 10px rgba(214, 168, 95, 0.72);
+}
+.automate-engine-flow-top {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 0.75rem;
+margin-bottom: 0.5rem;
+font-size: 0.72rem;
+font-weight: 700;
+}
+.automate-engine-flow-top span:first-child {
+color: var(--accent-copper);
+}
+.automate-engine-flow-card.blue .automate-engine-flow-top span:first-child {
+color: var(--accent-gold);
+}
+.automate-engine-flow-top span:last-child {
+color: rgba(251, 246, 238, 0.62);
+}
+.automate-engine-flow-card strong {
+display: block;
+color: var(--text-light);
+font-size: 0.95rem;
+font-weight: 700;
+line-height: 1.3;
+margin-bottom: 0.25rem;
+}
+.automate-engine-flow-card small {
+display: block;
+color: rgba(251, 246, 238, 0.42);
+font-size: 0.74rem;
+line-height: 1.35;
+}
+.automate-engine-fade {
+position: absolute;
+left: 0;
+right: 0;
+bottom: 0;
+height: 120px;
+background: linear-gradient(to top, rgba(11, 8, 6, 0.98), transparent);
+pointer-events: none;
+z-index: 4;
+}
+.automate-support-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+border-top: 1px solid rgba(244, 239, 231, 0.08);
+background: rgba(58, 42, 33, 0.38);
+position: relative;
+z-index: 5;
+}
+.automate-support-card {
+padding: 1.7rem;
+border-right: 1px solid rgba(244, 239, 231, 0.08);
+transition: background var(--transition-smooth);
+}
+.automate-support-card:last-child {
+border-right: 0;
+}
+.automate-support-card:hover {
+background: rgba(255, 255, 255, 0.05);
+}
+.automate-support-icon {
+width: 44px;
+height: 44px;
+margin-bottom: 1rem;
+border-radius: 14px;
+display: grid;
+place-items: center;
+color: var(--accent-copper);
+background: rgba(201, 135, 85, 0.10);
+border: 1px solid rgba(201, 135, 85, 0.18);
+}
+.automate-support-card h4 {
+margin: 0 0 0.5rem;
+color: var(--text-light);
+font-size: 1.08rem;
+letter-spacing: -0.04em;
+}
+.automate-support-card p {
+margin: 0;
+color: rgba(251, 246, 238, 0.62);
+font-size: 0.9rem;
+line-height: 1.65;
+}
+/* =========================================================
+SECTION 4 / PROOF & IMPACT
+========================================================= */
+.impact-section {
+position: relative;
+z-index: 4;
+padding: 8.5rem 1.5rem 9rem;
+background:
+radial-gradient(circle at 84% 18%, rgba(201,135,85,0.08), transparent 26%),
+radial-gradient(circle at 10% 86%, rgba(120,105,87,0.08), transparent 24%),
+linear-gradient(135deg, #F6F1E8 0%, #EFE6D8 100%);
+color: var(--text-dark);
+}
+.impact-shell {
+max-width: 1240px;
+margin: 0 auto;
+}
+.impact-grid {
+display: grid;
+grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+gap: 4rem;
+align-items: start;
+}
+.impact-copy {
+max-width: none;
+}
+.impact-copy .section-eyebrow {
+margin-bottom: 1rem;
+}
+.impact-copy .section-title {
+max-width: 676px;
+}
+.impact-copy .section-text {
+max-width: 540px;
+margin-top: 1rem;
+}
+.impact-list {
+margin-top: 3rem;
+}
+.impact-list-head {
+display: flex;
+justify-content: space-between;
+gap: 1rem;
+padding-bottom: 0.85rem;
+margin-bottom: 0.4rem;
+border-bottom: 1px solid rgba(24,19,15,0.08);
+color: rgba(24,19,15,0.46);
+font-size: 0.68rem;
+font-weight: 800;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+}
+.impact-list-item {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 1.5rem;
+padding: 1.25rem 0;
+border-bottom: 1px solid rgba(24,19,15,0.08);
+}
+.impact-list-item-main {
+display: flex;
+flex-direction: column;
+gap: 0.25rem;
+}
+.impact-list-item-main strong {
+color: var(--text-dark);
+font-size: 1.18rem;
+font-weight: 700;
+letter-spacing: -0.03em;
+}
+.impact-list-item-main span {
+color: var(--text-muted-dark);
+font-size: 0.84rem;
+}
+.impact-list-item-metric {
+color: rgba(24,19,15,0.56);
+font-size: 0.88rem;
+font-weight: 700;
+white-space: nowrap;
+}
+.impact-card {
+border: 1px solid rgba(24,19,15,0.08);
+border-radius: 32px;
+overflow: hidden;
+background:
+linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.46)),
+rgba(255,255,255,0.48);
+box-shadow: 0 24px 70px rgba(24,19,15,0.08);
+}
+.impact-card-media {
+position: relative;
+height: 290px;
+overflow: hidden;
+}
+.impact-card-media img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+transition: transform 900ms ease;
+}
+.impact-card:hover .impact-card-media img {
+transform: scale(1.04);
+}
+.impact-card-media::after {
+content: "";
+position: absolute;
+inset: 0;
+background: linear-gradient(to top, rgba(24,19,15,0.76), rgba(24,19,15,0.08));
+}
+.impact-card-media-content {
+position: absolute;
+left: 2rem;
+right: 2rem;
+bottom: 1.75rem;
+z-index: 2;
+color: var(--text-light);
+}
+.impact-card-badge {
+display: inline-flex;
+align-items: center;
+gap: 0.45rem;
+padding: 0.42rem 0.72rem;
+border-radius: 999px;
+margin-bottom: 0.85rem;
+border: 1px solid rgba(251,246,238,0.16);
+background: rgba(251,246,238,0.14);
+backdrop-filter: blur(10px);
+color: rgba(251,246,238,0.92);
+font-size: 0.64rem;
+font-weight: 800;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+}
+.impact-card-media-content h3 {
+margin: 0;
+color: var(--text-light);
+font-size: 2rem;
+letter-spacing: -0.05em;
+}
+.impact-card-body {
+padding: 2rem;
+}
+.impact-card-body h4 {
+margin: 0 0 0.7rem;
+color: var(--text-dark);
+font-size: 1.7rem;
+font-weight: 700;
+letter-spacing: -0.045em;
+}
+.impact-card-body p {
+margin: 0;
+color: var(--text-muted-dark);
+font-size: 0.94rem;
+line-height: 1.7;
+}
+.impact-metrics {
+display: grid;
+gap: 1.5rem;
+margin-top: 2rem;
+}
+.impact-metric-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 1rem;
+}
+.impact-metric-left {
+display: flex;
+align-items: center;
+gap: 0.95rem;
+}
+.impact-metric-icon {
+width: 42px;
+height: 42px;
+flex: 0 0 42px;
+border-radius: 999px;
+display: grid;
+place-items: center;
+color: var(--text-dark);
+background: rgba(24,19,15,0.06);
+transition: background var(--transition-smooth), color var(--transition-smooth);
+}
+.impact-metric-row:hover .impact-metric-icon {
+color: var(--text-light);
+background: var(--text-dark);
+}
+.impact-metric-copy {
+display: flex;
+flex-direction: column;
+}
+.impact-metric-copy strong {
+color: var(--text-dark);
+font-size: 0.92rem;
+font-weight: 700;
+letter-spacing: -0.02em;
+}
+.impact-metric-copy span {
+color: var(--text-muted-dark);
+font-size: 0.76rem;
+}
+.impact-metric-value {
+color: var(--text-dark);
+font-family: 'Sora', sans-serif;
+font-size: clamp(2rem, 3vw, 2.7rem);
+font-weight: 600;
+letter-spacing: -0.06em;
+white-space: nowrap;
+}
+/* =========================================================
+SECTION 5 / WORKFLOW SCENARIOS
+========================================================= */
+.workflow-section {
+position: relative;
+z-index: 5;
+padding: calc(7rem + 4vw) 1.5rem 7.5rem;
+margin-top: -4vw;
+background:
+radial-gradient(circle at 14% 22%, rgba(201,135,85,0.08), transparent 24%),
+radial-gradient(circle at 88% 84%, rgba(214,168,95,0.06), transparent 24%),
+linear-gradient(135deg, #18130F 0%, #221914 52%, #2A2019 100%);
+clip-path: polygon(0 4vw, 100% 0, 100% 100%, 0 100%);
+overflow: hidden;
+}
+.workflow-section::before {
+content: "";
+position: absolute;
+inset: 0;
+pointer-events: none;
+opacity: 0.1;
+background-image:
+linear-gradient(rgba(251,246,238,0.03) 1px, transparent 1px),
+linear-gradient(90deg, rgba(251,246,238,0.03) 1px, transparent 1px);
+background-size: 72px 72px;
+}
+.workflow-inner {
+position: relative;
+z-index: 2;
+max-width: 1240px;
+margin: 0 auto;
+padding: 2.25rem;
+display: grid;
+grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+gap: 2rem;
+align-items: start;
+background:
+linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035)),
+rgba(28,22,18,0.78);
+border: 1px solid rgba(251,246,238,0.12);
+border-radius: 32px;
+box-shadow:
+0 32px 90px rgba(0,0,0,0.26),
+inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.workflow-left {
+display: flex;
+flex-direction: column;
+min-height: 100%;
+justify-content: space-between;
+}
+.workflow-left-top {
+max-width: 560px;
+}
+.workflow-kicker {
+color: rgba(251,246,238,0.62);
+font-size: 0.78rem;
+font-weight: 700;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+}
+.workflow-title {
+margin: 0.65rem 0 0;
+color: var(--text-light);
+font-family: 'Sora', sans-serif;
+font-size: clamp(2.35rem, 4.2vw, 4.6rem);
+line-height: 0.96;
+letter-spacing: -0.065em;
+max-width: 11ch;
+}
+.workflow-scenario-list {
+--workflow-dot-size: 14px;
+--workflow-dot-column: 22px;
+margin-top: 2rem;
+display: flex;
+flex-direction: column;
+gap: 1.15rem;
+position: relative;
+}
+.workflow-scenario-list::before {
+content: "";
+position: absolute;
+left: calc((var(--workflow-dot-column) - 1px) / 2);
+top: 0.7rem;
+bottom: 0.9rem;
+width: 1px;
+background: linear-gradient(
+to bottom,
+rgba(201,135,85,0.90),
+rgba(251,246,238,0.20)
+);
+}
+.workflow-point {
+position: relative;
+display: grid;
+grid-template-columns: var(--workflow-dot-column) 1fr;
+column-gap: 0.95rem;
+align-items: flex-start;
+}
+.workflow-point-dot {
+position: relative;
+z-index: 1;
+width: var(--workflow-dot-size);
+height: var(--workflow-dot-size);
+margin-top: 0.25rem;
+margin-inline: auto;
+border-radius: 999px;
+border: 2px solid rgba(251,246,238,0.14);
+background: rgba(18,14,11,0.92);
+box-shadow:
+0 0 0 6px rgba(28,22,18,0.94),
+0 0 18px rgba(201,135,85,0.20);
+}
+.workflow-point-dot::after {
+content: "";
+position: absolute;
+inset: 2px;
+border-radius: 999px;
+background: var(--accent-copper);
+}
+.workflow-point-copy strong {
+display: block;
+color: var(--text-light);
+font-size: 1rem;
+font-weight: 700;
+letter-spacing: -0.02em;
+}
+.workflow-point-copy p {
+margin: 0.3rem 0 0;
+color: rgba(251,246,238,0.66);
+font-size: 0.84rem;
+line-height: 1.6;
+}
+.workflow-left-bottom {
+margin-top: 2.75rem;
+max-width: 420px;
+}
+.workflow-left-bottom strong {
+display: block;
+color: var(--text-light);
+font-size: 1rem;
+font-weight: 700;
+letter-spacing: -0.02em;
+}
+.workflow-left-bottom p {
+margin: 0.45rem 0 0;
+color: rgba(251,246,238,0.68);
+font-size: 0.92rem;
+}
+.workflow-button {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 0.55rem;
+margin-top: 1.1rem;
+padding: 0.9rem 1.15rem;
+border-radius: 999px;
+background: linear-gradient(135deg, #F1C08A, var(--accent-copper));
+color: var(--text-dark);
+font-size: 0.84rem;
+font-weight: 800;
+letter-spacing: 0.02em;
+transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+box-shadow: 0 14px 36px rgba(201,135,85,0.22);
+}
+.workflow-button:hover {
+transform: translateY(-2px);
+box-shadow: 0 18px 44px rgba(201,135,85,0.3);
+}
+.workflow-button-dot {
+width: 8px;
+height: 8px;
+border-radius: 999px;
+background: white;
+}
+.workflow-right {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1rem;
+}
+.workflow-card {
+position: relative;
+overflow: hidden;
+border: 1px solid rgba(251,246,238,0.12);
+border-radius: 22px;
+background: rgba(255,255,255,0.055);
+min-height: 220px;
+box-shadow: 0 18px 44px rgba(0,0,0,0.18);
+}
+.workflow-card-wide {
+grid-column: span 2;
+}
+.workflow-card-tall {
+min-height: 290px;
+}
+.workflow-card img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+transition: transform 800ms ease;
+}
+.workflow-card:hover img {
+transform: scale(1.04);
+}
+.workflow-card::after {
+content: "";
+position: absolute;
+inset: 0;
+background:
+linear-gradient(to top, rgba(8,7,6,0.72), rgba(8,7,6,0.12) 58%, rgba(8,7,6,0.04));
+}
+.workflow-card-chip,
+.workflow-card-tag {
+position: absolute;
+top: 0.85rem;
+z-index: 2;
+display: inline-flex;
+align-items: center;
+gap: 0.4rem;
+border-radius: 999px;
+border: 1px solid rgba(251,246,238,0.14);
+background: rgba(255,255,255,0.08);
+backdrop-filter: blur(10px);
+color: rgba(251,246,238,0.92);
+font-size: 0.68rem;
+font-weight: 700;
+}
+.workflow-card-chip {
+left: 0.85rem;
+width: 34px;
+height: 34px;
+justify-content: center;
+padding: 0;
+}
+.workflow-card-tag {
+right: 0.85rem;
+padding: 0.55rem 0.75rem;
+}
+.workflow-card-label {
+position: absolute;
+left: 1rem;
+right: 1rem;
+bottom: 1rem;
+z-index: 2;
+color: white;
+font-size: 1.35rem;
+font-weight: 700;
+letter-spacing: -0.03em;
+line-height: 1.05;
+}
+/* =========================================================
+SECTION 6 / IMPLEMENTATION + PROOF
+========================================================= */
+.process-section {
+position: relative;
+z-index: 6;
+padding: calc(8rem + 4vw) 1.5rem 8.5rem;
+margin-top: -4vw;
+background:
+radial-gradient(circle at 16% 18%, rgba(201,135,85,0.10), transparent 24%),
+radial-gradient(circle at 82% 82%, rgba(214,168,95,0.06), transparent 24%),
+linear-gradient(135deg, #F5EFE6 0%, #EDE2D4 100%);
+color: var(--text-dark);
+clip-path: polygon(0 4vw, 100% 0, 100% 100%, 0 100%);
+}
+.process-shell {
+max-width: 1240px;
+margin: 0 auto;
+}
+.process-header {
+max-width: 820px;
+margin: 0 auto 3rem;
+text-align: center;
+}
+.process-header .section-eyebrow {
+justify-content: center;
+}
+.process-header .section-text {
+max-width: 720px;
+margin-left: auto;
+margin-right: auto;
+}
+.process-panel {
+display: grid;
+grid-template-columns: 1fr 1fr 0.95fr;
+gap: 1.25rem;
+padding: 1.35rem;
+border: 1px solid rgba(24,19,15,0.08);
+border-radius: 32px;
+background:
+linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.42)),
+rgba(255,255,255,0.38);
+box-shadow: 0 24px 70px rgba(24,19,15,0.08);
+}
+.process-card {
+border: 1px solid rgba(201,135,85,0.14);
+border-radius: 24px;
+overflow: hidden;
+background:
+linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.34)),
+rgba(255,255,255,0.24);
+}
+.process-card-inner {
+padding: 1.6rem;
+}
+.process-story {
+position: relative;
+min-height: 560px;
+background-size: cover;
+background-position: center;
+}
+.process-story::after {
+content: "";
+position: absolute;
+inset: 0;
+background: linear-gradient(to top, rgba(24,19,15,0.76), rgba(24,19,15,0.10));
+}
+.process-story-content {
+position: relative;
+z-index: 2;
+min-height: 560px;
+display: flex;
+flex-direction: column;
+padding: 1.8rem;
+}
+.process-story-top p:first-child {
+margin: 0;
+color: #F1C08A;
+font-size: 0.98rem;
+font-weight: 700;
+}
+.process-story-top p:last-child {
+margin: 0.35rem 0 0;
+color: rgba(251,246,238,0.72);
+font-size: 0.92rem;
+}
+.process-story-bottom {
+margin-top: auto;
+}
+.process-story-bottom h3 {
+margin: 0 0 1rem;
+color: var(--text-light);
+font-size: clamp(2rem, 3vw, 3.2rem);
+line-height: 1.02;
+letter-spacing: -0.06em;
+}
+.process-story-bottom h3 span {
+color: #F1C08A;
+}
+.process-dots-row {
+display: flex;
+align-items: center;
+gap: 0.4rem;
+margin-bottom: 1rem;
+}
+.process-dots-row span {
+width: 8px;
+height: 8px;
+border-radius: 999px;
+}
+.process-dots-row span:nth-child(1) { background: #F1C08A; }
+.process-dots-row span:nth-child(2) { background: #D6A85F; }
+.process-dots-row span:nth-child(3) { background: #B9773F; }
+.process-story-meta {
+display: flex;
+align-items: center;
+gap: 0.55rem;
+color: rgba(251,246,238,0.76);
+font-size: 0.84rem;
+}
+.process-center-card h4,
+.process-side-card h4 {
+margin: 0;
+color: var(--text-dark);
+font-family: 'Sora', sans-serif;
+font-size: 1rem;
+font-weight: 700;
+}
+.process-center-lead {
+margin: 0.8rem 0 0;
+color: var(--text-dark);
+font-size: clamp(2rem, 2.8vw, 3rem);
+line-height: 1.08;
+letter-spacing: -0.05em;
+max-width: 12ch;
+}
+.process-center-lead .accent {
+color: var(--accent-copper);
+}
+.process-subtitle {
+margin: 1.75rem 0 0.7rem;
+color: rgba(201,135,85,0.92);
+font-size: 0.9rem;
+font-weight: 700;
+}
+.process-bullets {
+display: grid;
+gap: 0.8rem;
+}
+.process-bullets div {
+display: flex;
+align-items: flex-start;
+gap: 0.7rem;
+color: rgba(24,19,15,0.84);
+font-size: 0.92rem;
+line-height: 1.55;
+}
+.process-bullets span {
+width: 6px;
+height: 6px;
+margin-top: 0.45rem;
+border-radius: 999px;
+background: var(--accent-copper);
+flex: 0 0 6px;
+}
+.process-quote {
+margin-top: 1.7rem;
+padding: 1.15rem;
+border: 1px solid rgba(201,135,85,0.14);
+border-radius: 18px;
+background: rgba(255,255,255,0.44);
+}
+.process-stars {
+display: flex;
+gap: 0.3rem;
+color: var(--accent-gold);
+margin-bottom: 0.8rem;
+}
+.process-stars svg {
+fill: currentColor;
+stroke: currentColor;
+}
+.process-quote p {
+margin: 0;
+color: rgba(24,19,15,0.84);
+font-size: 0.92rem;
+}
+.process-person {
+display: flex;
+align-items: center;
+gap: 0.8rem;
+margin-top: 1rem;
+}
+.process-person img {
+width: 34px;
+height: 34px;
+border-radius: 999px;
+object-fit: cover;
+}
+.process-person strong {
+display: block;
+color: var(--text-dark);
+font-size: 0.86rem;
+}
+.process-person span {
+display: block;
+color: rgba(24,19,15,0.52);
+font-size: 0.76rem;
+}
+.process-guarantee {
+display: flex;
+align-items: center;
+gap: 1.2rem;
+min-height: 240px;
+}
+.process-ring {
+position: relative;
+width: 112px;
+height: 112px;
+flex: 0 0 112px;
+}
+.process-ring::before {
+content: "";
+position: absolute;
+inset: 0;
+border-radius: 999px;
+background: var(--accent-copper);
+}
+.process-ring::after {
+content: "";
+position: absolute;
+inset: 12px;
+border-radius: 999px;
+background: rgba(245,239,230,0.92);
+}
+.process-ring-icon {
+position: absolute;
+inset: 0;
+display: grid;
+place-items: center;
+z-index: 2;
+color: var(--accent-copper);
+}
+.process-guarantee-copy {
+text-align: center;
+width: 100%;
+}
+.process-guarantee-copy h4 {
+font-size: 1.45rem;
+}
+.process-guarantee-copy p {
+margin: 0.75rem 0 0;
+color: rgba(24,19,15,0.60);
+font-size: 0.95rem;
+line-height: 1.65;
+}
+.process-stats {
+display: grid;
+gap: 1.35rem;
+min-height: 280px;
+}
+.process-stats-top {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1rem;
+}
+.process-stat-number {
+color: var(--text-dark);
+font-family: 'Sora', sans-serif;
+font-size: 2.15rem;
+font-weight: 700;
+letter-spacing: -0.05em;
+}
+.process-stat-copy {
+margin-top: 0.2rem;
+color: rgba(24,19,15,0.52);
+font-size: 0.78rem;
+}
+.process-capabilities {
+display: grid;
+gap: 0.75rem;
+}
+.process-capability {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 1rem;
+color: rgba(24,19,15,0.84);
+font-size: 0.92rem;
+}
+.process-capability span:last-child {
+color: var(--accent-copper);
+font-weight: 700;
+}
+.process-cert {
+margin-top: auto;
+padding-top: 1rem;
+border-top: 1px solid rgba(201,135,85,0.16);
+display: flex;
+align-items: center;
+gap: 0.55rem;
+color: rgba(24,19,15,0.74);
+font-size: 0.78rem;
+}
+.process-cert i {
+color: #5DAA6F;
+}
+/* =========================================================
+SECTION 7 / FAQ
+========================================================= */
+.faq-section {
+position: relative;
+z-index: 7;
+padding: calc(8rem + 4vw) 1.5rem calc(9.5rem + 5vw);
+margin-top: -4vw;
+background:
+radial-gradient(circle at 18% 20%, rgba(201,135,85,0.10), transparent 24%),
+radial-gradient(circle at 82% 80%, rgba(214,168,95,0.06), transparent 22%),
+linear-gradient(135deg, #211913 0%, #2A2019 52%, #342820 100%);
+color: var(--text-light);
+clip-path: polygon(0 0, 100% 4vw, 100% 100%, 0 calc(100% - 5vw));
+overflow: hidden;
+}
+.faq-section::before {
+content: "";
+position: absolute;
+inset: 0;
+pointer-events: none;
+opacity: 0.10;
+background-image:
+linear-gradient(rgba(251,246,238,0.03) 1px, transparent 1px),
+linear-gradient(90deg, rgba(251,246,238,0.03) 1px, transparent 1px);
+background-size: 72px 72px;
+}
+.faq-shell {
+position: relative;
+z-index: 2;
+max-width: 1180px;
+margin: 0 auto;
+}
+.faq-header {
+max-width: 820px;
+margin: 0 auto 3.5rem;
+text-align: center;
+}
+.faq-header .section-eyebrow {
+justify-content: center;
+}
+.faq-header .section-text {
+max-width: 720px;
+margin-left: auto;
+margin-right: auto;
+color: rgba(251,246,238,0.68);
+}
+.faq-layout {
+display: grid;
+grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+gap: 1.5rem;
+align-items: start;
+}
+.faq-side-card {
+position: sticky;
+top: 110px;
+padding: 1.5rem;
+border: 1px solid rgba(251,246,238,0.10);
+border-radius: 28px;
+background:
+linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025)),
+rgba(22,17,13,0.48);
+box-shadow: 0 24px 70px rgba(0,0,0,0.16);
+overflow: hidden;
+}
+.faq-side-card::before {
+content: "";
+position: absolute;
+inset: 0;
+pointer-events: none;
+border-radius: 28px;
+padding: 1px;
+background: linear-gradient(
+180deg,
+rgba(241,192,138,0.18) 0%,
+rgba(201,135,85,0.10) 22%,
+rgba(255,255,255,0) 100%
+);
+-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+-webkit-mask-composite: xor;
+mask-composite: exclude;
+}
+.faq-side-kicker {
+display: inline-flex;
+align-items: center;
+gap: 0.45rem;
+margin-bottom: 1rem;
+color: rgba(251,246,238,0.62);
+font-size: 0.72rem;
+font-weight: 800;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+}
+.faq-side-kicker-dot {
+width: 8px;
+height: 8px;
+border-radius: 999px;
+background: var(--accent-copper);
+box-shadow: 0 0 18px rgba(201,135,85,0.40);
+}
+.faq-side-card h3 {
+margin: 0;
+color: var(--text-light);
+font-size: clamp(1.9rem, 3.1vw, 2.8rem);
+line-height: 1.02;
+letter-spacing: -0.055em;
+}
+.faq-side-card p {
+margin: 1rem 0 0;
+color: rgba(251,246,238,0.64);
+font-size: 0.96rem;
+line-height: 1.7;
+}
+.faq-side-points {
+display: grid;
+gap: 0.95rem;
+margin-top: 1.5rem;
+}
+.faq-side-point {
+display: flex;
+align-items: flex-start;
+gap: 0.75rem;
+color: rgba(251,246,238,0.74);
+font-size: 0.9rem;
+line-height: 1.55;
+}
+.faq-side-point-icon {
+width: 34px;
+height: 34px;
+flex: 0 0 34px;
+border-radius: 12px;
+display: grid;
+place-items: center;
+color: var(--accent-copper);
+background: rgba(201,135,85,0.10);
+border: 1px solid rgba(201,135,85,0.18);
+}
+.faq-list {
+display: grid;
+gap: 0.9rem;
+}
+.faq-item {
+position: relative;
+border: 1px solid rgba(251,246,238,0.10);
+border-radius: 24px;
+background:
+linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)),
+rgba(20,15,12,0.58);
+box-shadow: 0 16px 46px rgba(0,0,0,0.12);
+overflow: hidden;
+}
+.faq-item::before {
+content: "";
+position: absolute;
+inset: 0;
+border-radius: 24px;
+pointer-events: none;
+background: linear-gradient(
+180deg,
+rgba(241,192,138,0.08),
+rgba(255,255,255,0)
+);
+opacity: 0.9;
+}
+.faq-question {
+width: 100%;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 1rem;
+padding: 1.3rem 1.35rem;
+border: 0;
+background: transparent;
+color: var(--text-light);
+text-align: left;
+cursor: pointer;
+font-family: 'Sora', sans-serif;
+font-size: 1.02rem;
+font-weight: 600;
+letter-spacing: -0.03em;
+}
+.faq-question span:first-child {
+max-width: 92%;
+}
+.faq-icon {
+width: 38px;
+height: 38px;
+flex: 0 0 38px;
+border-radius: 999px;
+display: grid;
+place-items: center;
+color: var(--accent-copper);
+background: rgba(201,135,85,0.10);
+border: 1px solid rgba(201,135,85,0.16);
+transition: transform var(--transition-smooth), background var(--transition-smooth);
+}
+.faq-item.is-open .faq-icon {
+transform: rotate(45deg);
+background: rgba(201,135,85,0.16);
+}
+.faq-answer {
+display: grid;
+grid-template-rows: 0fr;
+transition: grid-template-rows 280ms ease;
+}
+.faq-answer-inner {
+overflow: hidden;
+}
+.faq-item.is-open .faq-answer {
+grid-template-rows: 1fr;
+}
+.faq-answer-content {
+padding: 0 1.35rem 1.35rem;
+color: rgba(251,246,238,0.66);
+font-size: 0.94rem;
+line-height: 1.75;
+}
+.faq-answer-content p {
+margin: 0;
+}
+.faq-answer-content a {
+color: #F1C08A;
+}
+.faq-footer-note {
+margin-top: 1.5rem;
+text-align: center;
+color: rgba(251,246,238,0.46);
+font-size: 0.76rem;
+font-weight: 800;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+}
+/* =========================================================
+SECTION 8 / FINAL CTA
+========================================================= */
+.audit-section {
+position: relative;
+z-index: 8;
+margin-top: -13vw;
+padding: 0;
+color: var(--text-light);
+background: #18130F;
+clip-path: polygon(0 8vw, 100% 0, 100% 100%, 0 100%);
+overflow: hidden;
+}
+.audit-shell {
+width: 100%;
+max-width: none;
+margin: 0;
+}
+.audit-stage {
+position: relative;
+width: 100%;
+min-height: 100vh;
+overflow: hidden;
+background: #18130F;
+}
+.audit-media {
+position: absolute;
+inset: 0;
+overflow: hidden;
+z-index: 0;
+}
+.audit-media img {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+object-fit: cover;
+object-position: center center;
+opacity: 0.92;
+filter: saturate(1) contrast(1.02) brightness(1.18);
+will-change: transform;
+transform: translate3d(0, 0, 0) scale(1.02);
+}
+.audit-media::before {
+content: "";
+position: absolute;
+inset: 0;
+z-index: 2;
+pointer-events: none;
+background:
+radial-gradient(circle at 68% 34%, rgba(201,135,85,0.12), transparent 34%),
+linear-gradient(90deg, rgba(18,15,12,0.72), rgba(18,15,12,0.28) 48%, rgba(18,15,12,0.58)),
+linear-gradient(180deg, rgba(18,15,12,0.16), transparent 34%, rgba(18,15,12,0.84));
+}
+.audit-media::after {
+content: "";
+position: absolute;
+inset: 0;
+z-index: 3;
+pointer-events: none;
+background-image:
+linear-gradient(rgba(251,246,238,0.05) 1px, transparent 1px),
+linear-gradient(90deg, rgba(251,246,238,0.05) 1px, transparent 1px);
+background-size: 72px 72px;
+opacity: 0.15;
+mask-image: radial-gradient(circle at 55% 48%, black, transparent 74%);
+}
+.audit-content {
+position: relative;
+z-index: 5;
+min-height: 100vh;
+max-width: 1440px;
+margin: 0 auto;
+padding: calc(7.5rem + 13vw) 1.5rem 6rem;
+display: flex;
+flex-direction: column;
+justify-content: flex-start;
+}
+.audit-bottom {
+display: grid;
+grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.56fr);
+gap: 3rem;
+align-items: end;
+margin-top: 0;
+}
+.audit-copy {
+max-width: 980px;
+}
+.audit-eyebrow {
+display: inline-flex;
+align-items: center;
+gap: 0.65rem;
+margin-bottom: 1.2rem;
+color: rgba(251,246,238,0.72);
+font-size: 0.74rem;
+font-weight: 800;
+letter-spacing: 0.17em;
+text-transform: uppercase;
+}
+.audit-eyebrow-dot {
+width: 8px;
+height: 8px;
+border-radius: 999px;
+background: var(--accent-copper);
+box-shadow: 0 0 20px rgba(201,135,85,0.50);
+}
+.audit-title {
+max-width: 10ch;
+margin: 0;
+color: var(--text-light);
+font-size: clamp(3.6rem, 7vw, 7.2rem);
+font-weight: 500;
+line-height: 0.95;
+letter-spacing: -0.09em;
+}
+.audit-text {
+max-width: 680px;
+margin: 1.25rem 0 0;
+color: rgba(251,246,238,0.76);
+font-size: 1.04rem;
+line-height: 1.72;
+}
+.audit-actions {
+display: flex;
+flex-wrap: wrap;
+gap: 0.85rem;
+margin-top: 1.7rem;
+}
+.audit-btn-primary,
+.audit-btn-secondary {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 0.55rem;
+padding: 0.95rem 1.2rem;
+border-radius: 999px;
+font-size: 0.84rem;
+font-weight: 800;
+letter-spacing: 0.04em;
+transition:
+transform var(--transition-smooth),
+box-shadow var(--transition-smooth),
+background var(--transition-smooth);
+}
+.audit-btn-primary {
+color: var(--text-dark);
+background: linear-gradient(135deg, #F1C08A, var(--accent-copper));
+box-shadow: 0 16px 36px rgba(201,135,85,0.24);
+}
+.audit-btn-primary:hover {
+transform: translateY(-2px);
+box-shadow: 0 20px 44px rgba(201,135,85,0.32);
+}
+.audit-btn-secondary {
+color: var(--text-light);
+border: 1px solid rgba(251,246,238,0.16);
+background: rgba(251,246,238,0.08);
+backdrop-filter: blur(10px);
+}
+.audit-btn-secondary:hover {
+transform: translateY(-2px);
+background: rgba(251,246,238,0.12);
+}
+.audit-side-card {
+justify-self: end;
+width: 100%;
+max-width: 410px;
+padding: 1.4rem;
+border: 1px solid rgba(251,246,238,0.12);
+border-radius: 26px;
+background:
+linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05)),
+rgba(18,15,12,0.52);
+backdrop-filter: blur(16px);
+box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+}
+.audit-side-head {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 1rem;
+margin-bottom: 1rem;
+}
+.audit-side-head strong {
+color: var(--text-light);
+font-family: 'Sora', sans-serif;
+font-size: 1.08rem;
+letter-spacing: -0.03em;
+}
+.audit-side-badge {
+display: inline-flex;
+align-items: center;
+gap: 0.4rem;
+padding: 0.46rem 0.72rem;
+border-radius: 999px;
+color: rgba(251,246,238,0.92);
+font-size: 0.64rem;
+font-weight: 800;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+border: 1px solid rgba(251,246,238,0.14);
+background: rgba(251,246,238,0.10);
+}
+.audit-side-list {
+display: grid;
+gap: 0.9rem;
+}
+.audit-side-row {
+display: flex;
+align-items: flex-start;
+gap: 0.85rem;
+padding: 0.9rem 0;
+border-top: 1px solid rgba(251,246,238,0.10);
+}
+.audit-side-row:first-child {
+border-top: 0;
+padding-top: 0;
+}
+.audit-side-icon {
+width: 38px;
+height: 38px;
+flex: 0 0 38px;
+border-radius: 12px;
+display: grid;
+place-items: center;
+color: var(--accent-copper);
+background: rgba(201,135,85,0.10);
+border: 1px solid rgba(201,135,85,0.18);
+}
+.audit-side-copy {
+display: flex;
+flex-direction: column;
+}
+.audit-side-copy strong {
+color: var(--text-light);
+font-size: 0.94rem;
+font-weight: 700;
+letter-spacing: -0.02em;
+}
+.audit-side-copy span {
+color: rgba(251,246,238,0.62);
+font-size: 0.82rem;
+line-height: 1.55;
+}
+.audit-stats-row {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 0.8rem;
+margin-top: 1.15rem;
+padding-top: 1rem;
+border-top: 1px solid rgba(251,246,238,0.10);
+}
+.audit-stat {
+display: flex;
+flex-direction: column;
+gap: 0.2rem;
+}
+.audit-stat strong {
+color: var(--text-light);
+font-family: 'Sora', sans-serif;
+font-size: 1.35rem;
+font-weight: 600;
+letter-spacing: -0.05em;
+}
+.audit-stat span {
+color: rgba(251,246,238,0.58);
+font-size: 0.72rem;
+line-height: 1.45;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+}
+/* =========================================================
+FOOTER
+========================================================= */
+.site-footer {
+position: relative;
+z-index: 9;
+background:
+radial-gradient(circle at 14% 18%, rgba(201,135,85,0.08), transparent 24%),
+linear-gradient(135deg, #F5EFE6 0%, #EDE2D4 100%);
+color: var(--text-dark);
+border-top: 1px solid rgba(24,19,15,0.08);
+}
+.site-footer::before {
+content: "";
+position: absolute;
+top: 0;
+left: 50%;
+width: min(1240px, calc(100% - 3rem));
+height: 1px;
+transform: translateX(-50%);
+background: linear-gradient(
+90deg,
+transparent,
+rgba(201,135,85,0.35),
+transparent
+);
+}
+.site-footer-shell {
+max-width: 1240px;
+margin: 0 auto;
+padding: 2.6rem 1.5rem 2.1rem;
+}
+.site-footer-top {
+display: grid;
+grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+gap: 2rem;
+align-items: start;
+padding-bottom: 1.75rem;
+border-bottom: 1px solid rgba(24,19,15,0.10);
+}
+.site-footer-brand {
+max-width: 500px;
+}
+.site-footer-brand .brand-lockup {
+color: var(--text-dark);
+}
+.site-footer-brand .brand-mark {
+color: var(--text-dark);
+background: linear-gradient(135deg, #F1C08A, var(--accent-copper));
+}
+.site-footer-brand p {
+margin: 1rem 0 0;
+color: rgba(24,19,15,0.62);
+font-size: 0.95rem;
+line-height: 1.7;
+}
+.site-footer-links {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 1.5rem;
+}
+.site-footer-col span {
+display: inline-block;
+margin-bottom: 0.9rem;
+color: rgba(24,19,15,0.46);
+font-size: 0.72rem;
+font-weight: 800;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+}
+.site-footer-col a {
+display: block;
+margin: 0.48rem 0;
+color: rgba(24,19,15,0.72);
+font-size: 0.92rem;
+transition: color var(--transition-smooth), transform var(--transition-smooth);
+}
+.site-footer-col a:hover {
+color: var(--text-dark);
+transform: translateX(2px);
+}
+.site-footer-bottom {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 1rem;
+padding-top: 1.2rem;
+}
+.site-footer-bottom p,
+.site-footer-bottom a {
+color: rgba(24,19,15,0.50);
+font-size: 0.82rem;
+}
+.site-footer-bottom a:hover {
+color: var(--text-dark);
+}
+.site-footer-bottom-links {
+display: flex;
+align-items: center;
+gap: 1rem;
+}
+/* =========================================================
+RESPONSIVE RULES
+========================================================= */
+@media (max-width: 1100px) {
+.hero-bottom {
+grid-template-columns: 1fr;
+}
+.hero-side {
+justify-self: start;
+}
+.hero-topline-right {
+text-align: left;
+}
+.diagnostic-step,
+.diagnostic-step.reverse {
+flex-direction: column;
+align-items: flex-start;
+gap: 1.1rem;
+margin-bottom: 2.2rem;
+}
+.diagnostic-copy,
+.diagnostic-card-wrap {
+width: 100%;
+}
+.diagnostic-step:not(.reverse) .diagnostic-copy,
+.diagnostic-step.reverse .diagnostic-copy {
+text-align: left;
+align-items: flex-start;
+}
+.diagnostic-rail {
+left: 21px;
+transform: none;
+}
+.diagnostic-node {
+margin-left: 0;
+}
+.diagnostic-track {
+padding-left: 0;
+}
+.automate-header-grid {
+grid-template-columns: 1fr;
+gap: 1.5rem;
+}
+.automate-side-copy {
+justify-self: start;
+}
+.automate-engine-grid {
+grid-template-columns: repeat(2, 1fr);
+}
+.automate-support-grid {
+grid-template-columns: 1fr;
+}
+.automate-support-card {
+border-right: 0;
+border-bottom: 1px solid rgba(251, 246, 238, 0.08);
+}
+.automate-support-card:last-child {
+border-bottom: 0;
+}
+.impact-grid {
+grid-template-columns: 1fr;
+gap: 3rem;
+}
+.impact-copy {
+max-width: 100%;
+}
+.workflow-inner {
+grid-template-columns: 1fr;
+}
+.process-panel {
+grid-template-columns: 1fr;
+}
+.process-story,
+.process-story-content {
+min-height: 460px;
+}
+.faq-layout {
+grid-template-columns: 1fr;
+}
+.faq-side-card {
+position: relative;
+top: auto;
+}
+.audit-bottom {
+grid-template-columns: 1fr;
+gap: 2rem;
+}
+.audit-side-card {
+justify-self: start;
+max-width: 100%;
+}
+.site-footer-top {
+grid-template-columns: 1fr;
+}
+}
+@media (max-width: 900px) {
+.nav-shell {
+height: 70px;
+padding: 0 1rem;
+grid-template-columns: 1fr auto;
+}
+.nav-left,
+.nav-right {
+display: none;
+}
+.brand-lockup {
+justify-self: start;
+}
+.mobile-menu-btn {
+display: inline-flex;
+}
+.hero-content-wrap {
+padding: 7.5rem 1rem 5rem;
+}
+.audit-content {
+padding: calc(8.5rem + 7vw) 1.25rem 2rem;
+}
+.audit-topline {
+flex-direction: column;
+gap: 1rem;
+}
+.audit-topline div:last-child {
+text-align: left !important;
+}
+.site-footer-links {
+grid-template-columns: 1fr 1fr;
+}
+}
+@media (max-width: 680px) {
+.hero-topline {
+flex-direction: column;
+gap: 1rem;
+}
+.hero-title {
+font-size: clamp(3.2rem, 15vw, 5rem);
+}
+.hero-bottom {
+gap: 2rem;
+}
+.hero-chip-row {
+gap: 0.5rem;
+}
+.diagnostic-section {
+padding: 6.5rem 1rem 7rem;
+}
+.diagnostic-header {
+margin-bottom: 3.25rem;
+}
+.diagnostic-copy h3 {
+font-size: 1.6rem;
+}
+.diagnostic-card {
+padding: 1rem;
+}
+.diagnostic-card-top {
+align-items: flex-start;
+}
+.automate-section {
+padding: 7rem 1rem 8rem;
+}
+.automate-engine-shell {
+width: 100%;
+margin-top: 2.4rem;
+}
+.automate-engine-header {
+padding: 1.2rem;
+}
+.automate-engine-title-row {
+flex-direction: column;
+align-items: flex-start;
+}
+.automate-engine-grid {
+grid-template-columns: 1fr;
+}
+.automate-engine-cell {
+min-height: auto;
+}
+.automate-support-card {
+padding: 1.25rem;
+}
+.impact-section {
+padding: 7rem 1rem 7.5rem;
+}
+.impact-card-media {
+height: 230px;
+}
+.impact-card-media-content {
+left: 1.25rem;
+right: 1.25rem;
+bottom: 1.2rem;
+}
+.impact-card-media-content h3 {
+font-size: 1.55rem;
+}
+.impact-card-body {
+padding: 1.25rem;
+}
+.impact-card-body h4 {
+font-size: 1.35rem;
+}
+.impact-metric-row {
+align-items: flex-start;
+}
+.impact-metric-value {
+font-size: 1.8rem;
+}
+.workflow-section {
+padding: calc(6rem + 3vw) 1rem 6rem;
+margin-top: -3vw;
+clip-path: polygon(0 3vw, 100% 0, 100% 100%, 0 100%);
+}
+.workflow-inner {
+padding: 1.1rem;
+border-radius: 24px;
+}
+.workflow-title {
+font-size: clamp(2.1rem, 11vw, 3.3rem);
+max-width: 12ch;
+}
+.workflow-right {
+grid-template-columns: 1fr;
+}
+.workflow-card-wide {
+grid-column: span 1;
+}
+.workflow-card-tall {
+min-height: 240px;
+}
+.workflow-card-label {
+font-size: 1.1rem;
+}
+.process-section {
+padding: calc(6.5rem + 3vw) 1rem 7rem;
+margin-top: -3vw;
+clip-path: polygon(0 3vw, 100% 0, 100% 100%, 0 100%);
+}
+.process-panel {
+padding: 1rem;
+border-radius: 24px;
+}
+.process-card-inner {
+padding: 1.2rem;
+}
+.process-story-content {
+padding: 1.2rem;
+}
+.process-story,
+.process-story-content {
+min-height: 400px;
+}
+.process-guarantee {
+flex-direction: column;
+text-align: center;
+}
+.process-stats-top {
+grid-template-columns: 1fr 1fr;
+}
+.faq-section {
+padding: calc(6.5rem + 3vw) 1rem calc(7.5rem + 4vw);
+margin-top: -3vw;
+clip-path: polygon(0 0, 100% 3vw, 100% 100%, 0 calc(100% - 4vw));
+}
+.faq-header {
+margin-bottom: 2.5rem;
+}
+.faq-side-card {
+padding: 1.2rem;
+border-radius: 22px;
+}
+.faq-question {
+padding: 1.05rem 1rem;
+font-size: 0.95rem;
+}
+.faq-answer-content {
+padding: 0 1rem 1rem;
+font-size: 0.9rem;
+}
+.audit-section {
+margin-top: -11vw;
+clip-path: polygon(0 11vw, 100% 0, 100% 100%, 0 100%);
+}
+.audit-media img {
+inset: -18% 0 auto 0;
+height: 136%;
+transform: translate3d(0, 0, 0) scale(1.08);
+}
+.audit-stage {
+min-height: 780px;
+}
+.audit-content {
+min-height: 780px;
+padding: calc(6.5rem + 11vw) 1rem 3rem;
+}
+.audit-title {
+max-width: 10ch;
+font-size: clamp(2.6rem, 13vw, 4.4rem);
+}
+.audit-text {
+font-size: 0.96rem;
+}
+.audit-actions {
+flex-direction: column;
+align-items: stretch;
+}
+.audit-btn-primary,
+.audit-btn-secondary {
+width: 100%;
+}
+.audit-stats-row {
+grid-template-columns: 1fr;
+}
+.site-footer-shell {
+padding: 2rem 1rem 1.5rem;
+}
+.site-footer-links {
+grid-template-columns: 1fr;
+gap: 1rem;
+}
+.site-footer-bottom {
+flex-direction: column;
+align-items: flex-start;
+}
+.site-footer-bottom-links {
+flex-wrap: wrap;
+gap: 0.8rem;
+}
+}
+</style><!-- aura-ga4-start -->
+<script async="" src="assets/js_19c0e2c2c8a8.js"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-2M6V79H761');
+</script>
+<!-- aura-ga4-end -->
+<style data-scroll-fix="true">
+        /* Scroll fixes for offline viewing */
+        html, body {
+            overflow: auto !important;
+            overflow-x: hidden !important;
+            height: auto !important;
+            min-height: 100% !important;
+            scroll-behavior: auto !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        /* Force visibility - many sites use JS animations for initial display */
+        body, .wrapper, main, #__next, #app, .page, .content {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: none !important;
+        }
+        
+        /* Disable loader/preloader overlays */
+        .loader, .preloader, .loading, [class*="loader"], [class*="preloader"] {
+            display: none !important;
+            opacity: 0 !important;
+        }
+        
+        /* Show elements that might be hidden for animation */
+        .word-inner, .char, .line, [data-aos], [data-scroll],
+        .hero-text span, .hero-fade, [class*="hero"] span {
+            opacity: 1 !important;
+            transform: none !important;
+            visibility: visible !important;
+        }
+        
+        /* Reset Tailwind animation utility classes */
+        .translate-y-full, .translate-x-full, .-translate-y-full, .-translate-x-full,
+        .translate-y-1\/2, .-translate-y-1\/2, .translate-y-\[100\%\], .translate-y-\[110\%\] {
+            transform: none !important;
+        }
+        
+        /* Force visibility on common hidden-for-animation patterns */
+        .opacity-0, [class*="opacity-0"] {
+            opacity: 1 !important;
+        }
+        
+        /* Reset scale transforms used for animations */
+        .scale-0, .scale-50, .scale-75 {
+            transform: none !important;
+        }
+        
+        html.lenis, html.lenis-smooth, 
+        body.lenis, body.lenis-smooth,
+        .lenis-wrapper, .lenis-content,
+        [data-lenis-prevent], [data-scroll-container] {
+            overflow: visible !important;
+            height: auto !important;
+        }
+        
+        /* Fix flex containers that might cut off content */
+        body.flex.items-center,
+        body.flex.justify-center {
+            align-items: flex-start !important;
+            min-height: 100vh;
+            height: auto !important;
+        }
+        
+        /* Ensure main content scrolls */
+        main, #__next, #__nuxt, #app, .main-content {
+            overflow: visible !important;
+            height: auto !important;
+        }
+        </style></head>
+<body class="">
+<!-- SECTION 0 / NAVIGATION -->
+<nav class="site-nav" id="navbar">
+<div class="nav-shell">
+<div class="nav-left">
+<a class="nav-link" href="#solutions">Solutions</a>
+<a class="nav-link" href="#workflows">Workflows</a>
+<a class="nav-link" href="#process">Process</a>
+<a class="nav-link" href="#results">Results</a>
+</div>
+<a aria-label="RelayEstate AI home" class="brand-lockup" href="#hero">
+<span class="brand-mark">
+<i class="w-4 h-4" data-lucide="git-branch"></i>
+</span>
+<span class="brand-name">RelayEstate</span>
+</a>
+<div class="nav-right">
+<a class="nav-link" href="#faq">FAQ</a>
+<a class="nav-cta" href="#audit">
+          Find My Lead Gaps
+          <i class="w-4 h-4" data-lucide="arrow-right"></i>
+</a>
+</div>
+<button aria-label="Open menu" class="mobile-menu-btn">
+<i class="w-5 h-5" data-lucide="menu"></i>
+</button>
+</div>
+</nav>
+<!-- SECTION 1 / HERO -->
+<section class="hero-section section-slant-bottom" id="hero">
+<div class="hero-bg-layer">
+<img alt="Luxury modern home exterior at dusk" id="hero-bg-img" src="assets/b88b71ee-6e8c-4230-b004-094bc0_2843af477cf7.jpg"/>
+</div>
+<div class="hero-content-wrap">
+<div class="hero-topline reveal-item delay-200">
+<div class="hero-topline-left">
+<span>// AI response systems for real estate teams</span>
+<small>Lead intake · routing · scheduling · CRM follow-up</small>
+</div>
+<div class="hero-topline-right">
+<span>Operating system layer</span>
+<small>Response target: under 60 seconds</small>
+</div>
+</div>
+<div class="hero-bottom">
+<h1 class="hero-title reveal-item delay-100">
+          Turn every inquiry into a faster next step.
+        </h1>
+<div class="hero-side reveal-item delay-300">
+<p class="hero-text">
+            Automate lead response, qualification, routing, scheduling, and CRM updates so your team can move every
+            inquiry forward before momentum fades.
+          </p>
+<a class="btn btn-primary hero-cta" href="#audit">
+            Map My Lead Flow
+            <i class="w-4 h-4" data-lucide="arrow-right-up"></i>
+</a>
+<div class="hero-chip-row">
+<span class="hero-chip">
+<i class="w-3 h-3" data-lucide="message-square"></i>
+            Instant reply
+          </span>
+<span class="hero-chip">
+<i class="w-3 h-3" data-lucide="calendar-check"></i>
+            Booked call
+          </span>
+<span class="hero-chip">
+<i class="w-3 h-3" data-lucide="database-zap"></i>
+            CRM sync
+          </span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2 / DIAGNOSTIC TIMELINE -->
+<section class="diagnostic-section section-slant-top" id="pain">
+<div class="diagnostic-shell">
+<div class="diagnostic-header">
+<div class="section-eyebrow dark">
+<span class="eyebrow-dot"></span>
+          Pipeline leakage
+        </div>
+<h2 class="section-title dark">
+          Where real estate teams lose momentum after the lead comes in.
+        </h2>
+<p class="section-text dark">
+          Most teams already have leads coming from websites, portals, referrals, and calls. The real problem is what
+          happens in the minutes and hours after that first inquiry.
+        </p>
+</div>
+<div class="diagnostic-track">
+<div aria-hidden="true" class="diagnostic-rail">
+<div class="diagnostic-rail-glow"></div>
+</div>
+<!-- STEP 1 -->
+<div class="diagnostic-step">
+<div class="diagnostic-copy">
+<div class="diagnostic-badge">Inquiry intake</div>
+<h3>The lead arrives, but the response window is short.</h3>
+<p>
+              A website form, portal lead, missed call, or referral handoff creates intent. If the first response is
+              slow, momentum starts fading immediately.
+            </p>
+</div>
+<div aria-hidden="true" class="diagnostic-node"></div>
+<div class="diagnostic-card-wrap">
+<div class="diagnostic-card">
+<div class="diagnostic-card-top">
+<div class="diagnostic-card-icon">
+<i class="w-5 h-5" data-lucide="inbox"></i>
+</div>
+<strong>Lead sources stack up fast</strong>
+</div>
+<ul class="diagnostic-list">
+<li>Website forms arrive without instant acknowledgment</li>
+<li>Portal leads compete with other active tasks</li>
+<li>Missed calls rarely get a structured text-back</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- STEP 2 -->
+<div class="diagnostic-step reverse">
+<div class="diagnostic-copy">
+<div class="diagnostic-badge">Response delay</div>
+<h3>Follow-up becomes inconsistent when timing depends on memory.</h3>
+<p>
+              Once the first few minutes pass, the quality of follow-up often depends on who is available, who
+              remembered, and what else is happening that day.
+            </p>
+</div>
+<div aria-hidden="true" class="diagnostic-node"></div>
+<div class="diagnostic-card-wrap">
+<div class="diagnostic-card">
+<div class="diagnostic-card-top">
+<div class="diagnostic-card-icon">
+<i class="w-5 h-5" data-lucide="timer"></i>
+</div>
+<strong>Response discipline breaks under load</strong>
+</div>
+<ul class="diagnostic-list">
+<li>After-hours inquiries wait too long</li>
+<li>Busy showing days weaken response consistency</li>
+<li>No shared standard for first-touch timing</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- STEP 3 -->
+<div class="diagnostic-step">
+<div class="diagnostic-copy">
+<div class="diagnostic-badge">Qualification gaps</div>
+<h3>Critical context is often missing after the first contact.</h3>
+<p>
+              Timeline, intent, urgency, price range, and location fit are not always captured clearly, which weakens
+              both routing and follow-up quality.
+            </p>
+</div>
+<div aria-hidden="true" class="diagnostic-node"></div>
+<div class="diagnostic-card-wrap">
+<div class="diagnostic-card">
+<div class="diagnostic-card-top">
+<div class="diagnostic-card-icon">
+<i class="w-5 h-5" data-lucide="messages-square"></i>
+</div>
+<strong>Conversations start without structure</strong>
+</div>
+<ul class="diagnostic-list">
+<li>Buyer vs seller intent stays unclear</li>
+<li>Urgency and move timeline get missed</li>
+<li>Follow-up lacks usable context for the next step</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- STEP 4 -->
+<div class="diagnostic-step reverse">
+<div class="diagnostic-copy">
+<div class="diagnostic-badge">Manual handoff</div>
+<h3>Routing, scheduling, and CRM updates happen too late.</h3>
+<p>
+              Once the lead needs a handoff, gaps between inboxes, calendars, and agents create friction. Good leads
+              stall in the transition.
+            </p>
+</div>
+<div aria-hidden="true" class="diagnostic-node"></div>
+<div class="diagnostic-card-wrap">
+<div class="diagnostic-card">
+<div class="diagnostic-card-top">
+<div class="diagnostic-card-icon">
+<i class="w-5 h-5" data-lucide="route"></i>
+</div>
+<strong>Momentum gets lost between systems</strong>
+</div>
+<ul class="diagnostic-list">
+<li>Qualified leads are routed manually</li>
+<li>Booking links and reminders are not triggered fast enough</li>
+<li>CRM notes, tags, and status changes stay incomplete</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="diagnostic-footer">
+<span>Inquiry → Delay → Missing context → Manual handoff → Cold lead</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3 / SOLUTION ARCHITECTURE -->
+<section class="automate-section grain-overlay section-slant-both" id="solutions">
+<div class="automate-shell content-layer">
+<div class="automate-header-grid">
+<div class="automate-header-copy">
+<div class="section-eyebrow">
+<span class="eyebrow-dot"></span>
+            Solution architecture
+          </div>
+<h2 class="section-title light">
+            Four systems that keep every inquiry moving.
+          </h2>
+</div>
+<div class="automate-side-copy">
+<p>
+            RelayEstate connects response, qualification, routing, and CRM continuity into one structured workflow so
+            your team can move faster without losing context.
+          </p>
+</div>
+</div>
+<div class="automate-stage">
+<div class="automate-engine-shell">
+<div class="automate-engine-top-glow"></div>
+<div class="automate-engine-windowbar">
+<span></span>
+<span></span>
+<span></span>
+</div>
+<div class="automate-engine-header">
+<div class="automate-engine-title-row">
+<h3>Lead orchestration layer</h3>
+<div class="automate-engine-stats">
+<span><i class="w-4 h-4" data-lucide="message-square"></i> Instant reply</span>
+<span><i class="w-4 h-4" data-lucide="check-circle-2"></i> Qualified + tagged</span>
+<span><i class="w-4 h-4" data-lucide="clock-3"></i> Response target: under 60s</span>
+</div>
+</div>
+</div>
+<div class="automate-engine-grid">
+<div class="automate-engine-cell">
+<div class="automate-engine-col-label">Inquiry intake</div>
+<div class="automate-engine-flow-card">
+<div class="automate-engine-flow-top">
+<span>New inquiry</span>
+<span>08:42</span>
+</div>
+<strong>Website buyer lead captured</strong>
+<small>Downtown Montreal · 3-bed · ready within 60 days</small>
+</div>
+</div>
+<div class="automate-engine-cell">
+<div class="automate-engine-col-label">Response layer</div>
+<div class="automate-engine-flow-card">
+<div class="automate-engine-flow-top">
+<span>Instant text</span>
+<span>08:43</span>
+</div>
+<strong>First-touch reply sent automatically</strong>
+<small>Introduces next step and opens qualification flow</small>
+</div>
+</div>
+<div class="automate-engine-cell">
+<div class="automate-engine-col-label">Qualification</div>
+<div class="automate-engine-flow-card blue">
+<div class="automate-engine-flow-top">
+<span>Intent tagged</span>
+<span>08:45</span>
+</div>
+<strong>Timeline, urgency, and fit captured</strong>
+<small>Buyer intent confirmed with budget and neighborhood match</small>
+</div>
+</div>
+<div class="automate-engine-cell">
+<div class="automate-engine-col-label">Routing + continuity</div>
+<div class="automate-engine-flow-card">
+<div class="automate-engine-flow-top">
+<span>Next step booked</span>
+<span>08:47</span>
+</div>
+<strong>Lead routed, meeting booked, CRM synced</strong>
+<small>Assigned to the right agent with summary, tags, and task creation</small>
+</div>
+</div>
+<div class="automate-engine-fade"></div>
+</div>
+</div>
+<div class="automate-support-grid">
+<article class="automate-support-card">
+<div class="automate-support-icon">
+<i class="w-5 h-5" data-lucide="radio-receiver"></i>
+</div>
+<h4>Respond instantly</h4>
+<p>
+              Reply to website forms, portal leads, and missed calls without waiting on manual first-touch coverage.
+            </p>
+</article>
+<article class="automate-support-card">
+<div class="automate-support-icon">
+<i class="w-5 h-5" data-lucide="messages-square"></i>
+</div>
+<h4>Qualify with structure</h4>
+<p>
+              Capture intent, urgency, budget, and location fit so follow-up starts with usable context instead of
+              guesswork.
+            </p>
+</article>
+<article class="automate-support-card">
+<div class="automate-support-icon">
+<i class="w-5 h-5" data-lucide="database-zap"></i>
+</div>
+<h4>Keep continuity intact</h4>
+<p>
+              Route the lead, trigger the next action, and push notes, tags, reminders, and status changes into the CRM.
+            </p>
+</article>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4 / PROOF & IMPACT -->
+<section class="impact-section" id="results">
+<div class="impact-shell">
+<div class="impact-grid">
+<div class="impact-copy">
+<div class="section-eyebrow dark">
+<span class="eyebrow-dot"></span>
+            Operational impact
+          </div>
+<h2 class="section-title dark">
+            What shifts when response becomes structured.
+          </h2>
+<p class="section-text dark">
+            RelayEstate does not just speed up follow-up. It improves how your team responds, qualifies, routes, and
+            maintains continuity after every inquiry.
+          </p>
+<div class="impact-list">
+<div class="impact-list-head">
+<span>Operational area</span>
+<span>Impact</span>
+</div>
+<div class="impact-list-item">
+<div class="impact-list-item-main">
+<strong>First-touch coverage</strong>
+<span>Website, portal, and missed-call response stays active beyond agent availability.</span>
+</div>
+<div class="impact-list-item-metric">Faster response</div>
+</div>
+<div class="impact-list-item">
+<div class="impact-list-item-main">
+<strong>Qualification consistency</strong>
+<span>Every conversation starts with clearer intent, urgency, timeline, and fit signals.</span>
+</div>
+<div class="impact-list-item-metric">Cleaner context</div>
+</div>
+<div class="impact-list-item">
+<div class="impact-list-item-main">
+<strong>Handoff reliability</strong>
+<span>Routing, reminders, and meeting transitions happen with less manual chasing.</span>
+</div>
+<div class="impact-list-item-metric">Fewer dropped steps</div>
+</div>
+<div class="impact-list-item">
+<div class="impact-list-item-main">
+<strong>CRM continuity</strong>
+<span>Summaries, tags, next actions, and lead status stay more current across the team.</span>
+</div>
+<div class="impact-list-item-metric">Better pipeline hygiene</div>
+</div>
+</div>
+</div>
+<div class="impact-card">
+<div class="impact-card-media">
+<img alt="Featured lead operations workflow" src="assets/159f2747-a817-4c4c-b3c6-3cb76f_bcb9433ad5d8.jpg"/>
+<div class="impact-card-media-content">
+<span class="impact-card-badge">Featured workflow snapshot</span>
+<h3>Lead flow recovered</h3>
+</div>
+</div>
+<div class="impact-card-body">
+<h4>From inquiry to booked next step with less friction.</h4>
+<p>
+              A structured workflow helps the team respond faster, capture usable context earlier, and move qualified
+              leads into the right next action without losing momentum between tools.
+            </p>
+<div class="impact-metrics">
+<div class="impact-metric-row">
+<div class="impact-metric-left">
+<div class="impact-metric-icon">
+<i class="w-5 h-5" data-lucide="clock-3"></i>
+</div>
+<div class="impact-metric-copy">
+<strong>Response target</strong>
+<span>First-touch speed</span>
+</div>
+</div>
+<div class="impact-metric-value">&lt; 60s</div>
+</div>
+<div class="impact-metric-row">
+<div class="impact-metric-left">
+<div class="impact-metric-icon">
+<i class="w-5 h-5" data-lucide="calendar-check-2"></i>
+</div>
+<div class="impact-metric-copy">
+<strong>Booked next step</strong>
+<span>Scheduling continuity</span>
+</div>
+</div>
+<div class="impact-metric-value">1 flow</div>
+</div>
+<div class="impact-metric-row">
+<div class="impact-metric-left">
+<div class="impact-metric-icon">
+<i class="w-5 h-5" data-lucide="database-zap"></i>
+</div>
+<div class="impact-metric-copy">
+<strong>CRM updated</strong>
+<span>Notes, tags, and routing</span>
+</div>
+</div>
+<div class="impact-metric-value">Synced</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 5 / WORKFLOW SCENARIOS -->
+<section class="workflow-section" id="workflows">
+<div class="workflow-inner">
+<div class="workflow-left">
+<div class="workflow-left-top">
+<span class="workflow-kicker">Workflow scenarios</span>
+<h2 class="workflow-title">
+          Built for the lead moments that need speed and follow-through.
+        </h2>
+<div class="workflow-scenario-list">
+<div class="workflow-point">
+<span class="workflow-point-dot"></span>
+<div class="workflow-point-copy">
+<strong>New inquiry capture</strong>
+<p>Instantly respond to website and portal leads before momentum fades.</p>
+</div>
+</div>
+<div class="workflow-point">
+<span class="workflow-point-dot"></span>
+<div class="workflow-point-copy">
+<strong>Missed-call recovery</strong>
+<p>Turn missed calls into structured text-back follow-up instead of dead ends.</p>
+</div>
+</div>
+<div class="workflow-point">
+<span class="workflow-point-dot"></span>
+<div class="workflow-point-copy">
+<strong>After-hours coverage</strong>
+<p>Keep evenings and weekends active with guided next steps and qualification.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="workflow-left-bottom">
+<strong>Move every lead closer to the next action.</strong>
+<p>
+          RelayEstate helps teams keep response, routing, reminders, and handoff continuity working across the lead moments where manual follow-up usually breaks.
+        </p>
+<a class="workflow-button" href="#results">
+          Explore workflow examples
+          <span class="workflow-button-dot"></span>
+</a>
+</div>
+</div>
+<div class="workflow-right">
+<article class="workflow-card workflow-card-wide">
+<img alt="New inquiry workflow" src="assets/18afa835-2089-4735-a843-41e6de_6b5cac4d7317.jpg"/>
+<span class="workflow-card-chip">
+<i class="w-4 h-4" data-lucide="message-square"></i>
+</span>
+<span class="workflow-card-tag">Website</span>
+<div class="workflow-card-label">First response in motion</div>
+</article>
+<article class="workflow-card workflow-card-tall">
+<img alt="Missed call recovery workflow" src="assets/363c853e-1ed3-4fd6-b9bf-692f68_8d175c4269e2.jpg"/>
+<span class="workflow-card-chip">
+<i class="w-4 h-4" data-lucide="phone-missed"></i>
+</span>
+<span class="workflow-card-tag">Inbound</span>
+<div class="workflow-card-label">Missed-call recovery</div>
+</article>
+<article class="workflow-card workflow-card-tall">
+<img alt="After-hours workflow" src="assets/f5b115de-1738-4c7b-b50d-5a214d_6b3a7f34fb3d.jpg"/>
+<span class="workflow-card-chip">
+<i class="w-4 h-4" data-lucide="moon-star"></i>
+</span>
+<span class="workflow-card-tag">After hours</span>
+<div class="workflow-card-label">Coverage that stays active</div>
+</article>
+</div>
+</div>
+</section>
+<!-- SECTION 6 / IMPLEMENTATION + PROOF -->
+<section class="process-section" id="process">
+<div class="process-shell">
+<div class="process-header">
+<div class="section-eyebrow dark">
+<span class="eyebrow-dot"></span>
+        Implementation + proof
+      </div>
+<h2 class="section-title dark">
+        How RelayEstate gets deployed without disrupting your team.
+      </h2>
+<p class="section-text dark">
+        We start by mapping your existing lead flow, then install the response, qualification, and routing logic where it creates the fastest operational lift.
+      </p>
+</div>
+<div class="process-panel">
+<!-- LEFT -->
+<article class="process-card process-story" style='background-image: url("867d0995-3ba9-4162-ab74-3d3091_5d25dc5d3e5d.jpg");'>
+<div class="process-story-content">
+<div class="process-story-top">
+<p>Our process</p>
+<p>Mapped &amp; operationalized</p>
+</div>
+<div class="process-story-bottom">
+<h3>
+              Lead flow with
+              <span>continuity</span>
+</h3>
+<div class="process-dots-row">
+<span></span>
+<span></span>
+<span></span>
+</div>
+<div class="process-story-meta">
+<span>Audit → deploy → refine</span>
+<i class="w-4 h-4" data-lucide="arrow-up-right"></i>
+</div>
+</div>
+</div>
+</article>
+<!-- MIDDLE -->
+<article class="process-card process-center-card">
+<div class="process-card-inner">
+<h4>Implementation clarity:</h4>
+<div class="process-center-lead">
+<span class="accent">4-step</span> rollout,
+            faster activation
+          </div>
+<div class="process-subtitle">How RelayEstate gets installed:</div>
+<div class="process-bullets">
+<div><span></span> Audit your current intake sources and handoffs</div>
+<div><span></span> Map response, qualification, and routing rules</div>
+<div><span></span> Launch the first automation layer quickly</div>
+<div><span></span> Refine from real lead behavior and team feedback</div>
+</div>
+<div class="process-quote">
+<div class="process-stars">
+<i class="w-4 h-4" data-lucide="star"></i>
+<i class="w-4 h-4" data-lucide="star"></i>
+<i class="w-4 h-4" data-lucide="star"></i>
+<i class="w-4 h-4" data-lucide="star"></i>
+<i class="w-4 h-4" data-lucide="star"></i>
+</div>
+<p>
+              “RelayEstate helped us tighten response time, clean up handoffs, and finally give every lead a more consistent next step.”
+            </p>
+<div class="process-person">
+<img alt="Client avatar" src="assets/71d7ad40-af9f-4af2-baa2-8d7eb0_545157210574.webp"/>
+<div>
+<strong>James Wilson</strong>
+<span>Team Lead, Growth Realty Group</span>
+</div>
+</div>
+</div>
+</div>
+</article>
+<!-- RIGHT -->
+<div class="grid grid-rows-2 gap-6">
+<article class="process-card">
+<div class="process-card-inner process-guarantee">
+<div class="process-ring">
+<div class="process-ring-icon">
+<i class="w-6 h-6" data-lucide="shield-check"></i>
+</div>
+</div>
+<div class="process-guarantee-copy">
+<h4>Workflow confidence</h4>
+<p>
+                Built to improve response coverage, handoff clarity, and lead continuity without disrupting the way your team already works.
+              </p>
+</div>
+</div>
+</article>
+<article class="process-card">
+<div class="process-card-inner process-stats">
+<div class="process-stats-top">
+<div>
+<div class="process-stat-number">4 steps</div>
+<div class="process-stat-copy">Audit to rollout</div>
+</div>
+<div>
+<div class="process-stat-number">48h</div>
+<div class="process-stat-copy">Initial system map</div>
+</div>
+</div>
+<div class="process-capabilities">
+<div class="process-capability">
+<span>Lead intake</span>
+<span>Mapped</span>
+</div>
+<div class="process-capability">
+<span>Routing logic</span>
+<span>Configured</span>
+</div>
+<div class="process-capability">
+<span>CRM continuity</span>
+<span>Structured</span>
+</div>
+</div>
+<div class="process-cert">
+<i class="w-4 h-4" data-lucide="check"></i>
+              Built around your real lead flow
+            </div>
+</div>
+</article>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 7 / FAQ -->
+<section class="faq-section" id="faq">
+<div class="faq-shell">
+<div class="faq-header">
+<div class="section-eyebrow">
+<span class="eyebrow-dot"></span>
+        FAQ
+      </div>
+<h2 class="section-title light">
+        What teams usually ask before they tighten the workflow.
+      </h2>
+<p class="section-text light">
+        RelayEstate is designed to fit into the response, routing, and follow-up systems you already use, while removing the gaps that cause lead momentum to fade.
+      </p>
+</div>
+<div class="faq-layout">
+<aside class="faq-side-card">
+<div class="faq-side-kicker">
+<span class="faq-side-kicker-dot"></span>
+          Common objections
+        </div>
+<h3>
+          Built to reduce friction, not add another layer of it.
+        </h3>
+<p>
+          Most teams are not missing leads because they lack tools. They lose momentum because response, qualification, routing, and handoff do not stay connected under real conditions.
+        </p>
+<div class="faq-side-points">
+<div class="faq-side-point">
+<div class="faq-side-point-icon">
+<i class="w-4 h-4" data-lucide="plug-zap"></i>
+</div>
+<div>Designed to work alongside your CRM, calendars, and lead sources.</div>
+</div>
+<div class="faq-side-point">
+<div class="faq-side-point-icon">
+<i class="w-4 h-4" data-lucide="timer-reset"></i>
+</div>
+<div>Built for fast response windows, after-hours continuity, and cleaner handoff.</div>
+</div>
+<div class="faq-side-point">
+<div class="faq-side-point-icon">
+<i class="w-4 h-4" data-lucide="route"></i>
+</div>
+<div>Structured to move qualified inquiries into the right next step without losing context.</div>
+</div>
+</div>
+</aside>
+<div class="faq-list">
+<div class="faq-item is-open">
+<button class="faq-question" type="button">
+<span>Does RelayEstate replace our CRM?</span>
+<span class="faq-icon">
+<i class="w-4 h-4" data-lucide="plus"></i>
+</span>
+</button>
+<div class="faq-answer">
+<div class="faq-answer-inner">
+<div class="faq-answer-content">
+<p>
+                  No. RelayEstate is built to strengthen the response and routing layer around your existing system. It helps capture context earlier, trigger the right next step faster, and keep lead continuity cleaner before and during the CRM handoff.
+                </p>
+</div>
+</div>
+</div>
+</div>
+<div class="faq-item">
+<button class="faq-question" type="button">
+<span>Can it handle after-hours or weekend inquiries?</span>
+<span class="faq-icon">
+<i class="w-4 h-4" data-lucide="plus"></i>
+</span>
+</button>
+<div class="faq-answer">
+<div class="faq-answer-inner">
+<div class="faq-answer-content">
+<p>
+                  Yes. One of the biggest gaps for most teams is the delay that happens when inquiry timing falls outside normal operating hours. RelayEstate is designed to keep first-touch response active and route the lead into a structured follow-up path without waiting for manual availability.
+                </p>
+</div>
+</div>
+</div>
+</div>
+<div class="faq-item">
+<button class="faq-question" type="button">
+<span>How custom can the routing and qualification logic be?</span>
+<span class="faq-icon">
+<i class="w-4 h-4" data-lucide="plus"></i>
+</span>
+</button>
+<div class="faq-answer">
+<div class="faq-answer-inner">
+<div class="faq-answer-content">
+<p>
+                  Qualification logic can be adapted around the factors your team actually uses to move leads forward, including intent, timeline, urgency, market, price range, and team structure. The goal is not generic automation. It is cleaner operational fit.
+                </p>
+</div>
+</div>
+</div>
+</div>
+<div class="faq-item">
+<button class="faq-question" type="button">
+<span>What kinds of lead sources can fit into the workflow?</span>
+<span class="faq-icon">
+<i class="w-4 h-4" data-lucide="plus"></i>
+</span>
+</button>
+<div class="faq-answer">
+<div class="faq-answer-inner">
+<div class="faq-answer-content">
+<p>
+                  Website forms, portal inquiries, missed calls, referrals, and other inbound entry points can all be structured into the same continuity layer, so your team is not relying on fragmented response habits across different channels.
+                </p>
+</div>
+</div>
+</div>
+</div>
+<div class="faq-item">
+<button class="faq-question" type="button">
+<span>How long does setup usually take?</span>
+<span class="faq-icon">
+<i class="w-4 h-4" data-lucide="plus"></i>
+</span>
+</button>
+<div class="faq-answer">
+<div class="faq-answer-inner">
+<div class="faq-answer-content">
+<p>
+                  Setup depends on how many sources, routing conditions, and handoff rules need to be mapped. In most cases, the first step is not full implementation. It is identifying where lead momentum is actually being lost and designing the workflow around those gaps.
+                </p>
+</div>
+</div>
+</div>
+</div>
+<div class="faq-item">
+<button class="faq-question" type="button">
+<span>Will this feel too automated for a high-trust client experience?</span>
+<span class="faq-icon">
+<i class="w-4 h-4" data-lucide="plus"></i>
+</span>
+</button>
+<div class="faq-answer">
+<div class="faq-answer-inner">
+<div class="faq-answer-content">
+<p>
+                  It should feel more responsive, not more robotic. The point is to make sure no inquiry waits in silence, no context gets lost early, and no qualified lead stalls before the next human step is ready to happen.
+                </p>
+</div>
+</div>
+</div>
+</div>
+<div class="faq-footer-note">
+          Routing clarity · faster response · cleaner handoff
+        </div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 8 / FINAL CTA -->
+<section class="audit-section" id="audit">
+<div class="audit-shell">
+<div class="audit-stage">
+<div class="audit-media">
+<img alt="Luxury modern real estate exterior at dusk" id="audit-parallax-img" src="assets/42b483d1-26b5-4f11-b4a0-a5307a_4ebf9dd1b27f.jpg"/>
+</div>
+<div class="audit-content">
+<div class="audit-bottom">
+<div class="audit-copy">
+<div class="audit-eyebrow">
+<span class="audit-eyebrow-dot"></span>
+              Final step
+            </div>
+<h2 class="audit-title">
+              See where your lead flow is quietly breaking.
+            </h2>
+<p class="audit-text">
+              RelayEstate helps you identify the exact places where response timing, qualification, routing, and handoff lose momentum, then rebuild the path into a faster and more connected next step.
+            </p>
+<div class="audit-actions">
+<a class="audit-btn-primary" href="#contact">
+                Find My Lead Gaps
+                <i class="w-4 h-4" data-lucide="arrow-right"></i>
+</a>
+<a class="audit-btn-secondary" href="#solutions">
+                Review The System
+                <i class="w-4 h-4" data-lucide="arrow-up-right"></i>
+</a>
+</div>
+</div>
+<div class="audit-side-card">
+<div class="audit-side-head">
+<strong>What the audit looks for</strong>
+<span class="audit-side-badge">Audit scope</span>
+</div>
+<div class="audit-side-list">
+<div class="audit-side-row">
+<div class="audit-side-icon">
+<i class="w-4 h-4" data-lucide="message-square-warning"></i>
+</div>
+<div class="audit-side-copy">
+<strong>Response lag</strong>
+<span>Where first-touch timing breaks and intent starts cooling.</span>
+</div>
+</div>
+<div class="audit-side-row">
+<div class="audit-side-icon">
+<i class="w-4 h-4" data-lucide="messages-square"></i>
+</div>
+<div class="audit-side-copy">
+<strong>Missing context</strong>
+<span>Where qualification details are not captured early enough to route cleanly.</span>
+</div>
+</div>
+<div class="audit-side-row">
+<div class="audit-side-icon">
+<i class="w-4 h-4" data-lucide="route"></i>
+</div>
+<div class="audit-side-copy">
+<strong>Broken handoff</strong>
+<span>Where routing, scheduling, or CRM continuity weakens the next step.</span>
+</div>
+</div>
+</div>
+<div class="audit-stats-row">
+<div class="audit-stat">
+<strong>&lt; 60s</strong>
+<span>target response</span>
+</div>
+<div class="audit-stat">
+<strong>1 flow</strong>
+<span>connected path</span>
+</div>
+<div class="audit-stat">
+<strong>0 gaps</strong>
+<span>handoff goal</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- FOOTER -->
+<footer class="site-footer">
+<div class="site-footer-shell">
+<div class="site-footer-top">
+<div class="site-footer-brand">
+<a aria-label="RelayEstate home" class="brand-lockup" href="#hero">
+<span class="brand-mark">
+<i class="w-4 h-4" data-lucide="git-branch"></i>
+</span>
+<span class="brand-name">RelayEstate</span>
+</a>
+<p>
+          Real estate lead automation designed to tighten response, qualification, routing, scheduling, and CRM continuity without losing momentum between the first inquiry and the next step.
+        </p>
+</div>
+<div class="site-footer-links">
+<div class="site-footer-col">
+<span>Navigation</span>
+<a href="#solutions">Solutions</a>
+<a href="#workflows">Workflows</a>
+<a href="#process">Process</a>
+<a href="#results">Results</a>
+</div>
+<div class="site-footer-col">
+<span>Explore</span>
+<a href="#faq">FAQ</a>
+<a href="#audit">Lead Audit</a>
+<a href="#hero">Back to Top</a>
+</div>
+<div class="site-footer-col">
+<span>Contact</span>
+<a href="#audit">Find My Lead Gaps</a>
+<a href="mailto:hello@relayestate.ai">hello@relayestate.ai</a>
+<a href="tel:+10000000000">+1 (000) 000-0000</a>
+</div>
+</div>
+</div>
+<div class="site-footer-bottom">
+<p>© 2026 RelayEstate. All rights reserved.</p>
+<div class="site-footer-bottom-links">
+<a href="#">Privacy</a>
+<a href="#">Terms</a>
+<a href="#">Cookies</a>
+</div>
+</div>
+</div>
+</footer>
+<script>
+  document.querySelectorAll('.faq-question').forEach((button) => {
+    button.addEventListener('click', () => {
+      const item = button.closest('.faq-item');
+      const isOpen = item.classList.contains('is-open');
+
+      document.querySelectorAll('.faq-item').forEach((faq) => {
+        faq.classList.remove('is-open');
+      });
+
+      if (!isOpen) {
+        item.classList.add('is-open');
+      }
+    });
+  });
+</script>
+<script>
+  const auditImage = document.getElementById('audit-parallax-img');
+  const auditSection = document.querySelector('.audit-section');
+
+  function updateAuditParallax() {
+    if (!auditImage || !auditSection) return;
+
+    const rect = auditSection.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    const progress = (viewportHeight - rect.top) / (viewportHeight + rect.height);
+    const clamped = Math.max(0, Math.min(1, progress));
+
+    const translateY = (clamped - 0.5) * 120;
+
+    auditImage.style.transform = `translate3d(0, ${translateY}px, 0) scale(1.12)`;
+  }
+
+  window.addEventListener('scroll', updateAuditParallax, { passive: true });
+  window.addEventListener('resize', updateAuditParallax);
+  updateAuditParallax();
+</script>
+<script>
+    lucide.createIcons();
+
+    const nav = document.getElementById('navbar');
+    const heroBg = document.getElementById('hero-bg-img');
+
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('is-scrolled', window.scrollY > 12);
+
+      if (heroBg && window.scrollY < window.innerHeight) {
+        heroBg.style.transform = `translateY(${window.scrollY * 0.25}px)`;
+      }
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-active');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.hero-section .reveal-item').forEach((el) => observer.observe(el));
+  </script>
+<script data-img-fallback-handler="">!function(){var f=["https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg","https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/4734259a-bad7-422f-981e-ce01e79184f2_1600w.jpg","https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/c543a9e1-f226-4ced-80b0-feb8445a75b9_1600w.jpg","https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/5bab247f-35d9-400d-a82b-fd87cfe913d2_1600w.webp","https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/30104e3c-5eea-4b93-93e9-5313698a7156_1600w.webp"],h=new Set;function g(s){for(var x=0,i=0;i<s.length;i++)x=(x<<5)-x+s.charCodeAt(i)|0;return f[Math.abs(x)%f.length]}function r(t){var s=t.src;if(s&&!h.has(s)){h.add(s);t.src=g(s)}}window.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="IMG")r(t)},!0);function c(){document.querySelectorAll("img").forEach(function(i){if(i.complete&&!i.naturalWidth&&i.src)r(i)})}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",c);else c()}()</script></body></html>

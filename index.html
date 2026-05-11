@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto Rhalph - Hero</title>
+
+    <!-- Fontes -->
+    <!-- Fontes -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- GSAP for MagicBento -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        /* =========================================================
+           GLOBAL TOKENS & VARIABLES (Herdados do Design System)
+           ========================================================= */
+        :root {
+            /* Dark Theme (Padrão para Hero e Navbar) */
+            --bg-ink: #050505;
+            --bg-deep: #111111;
+            --surface-glass-strong: rgba(20, 20, 20, 0.88);
+            --surface-glass: rgba(20, 20, 20, 0.72);
+            --surface-stone: #1A1A1A;
+
+            --accent-red: #DE2427;
+            --accent-yellow: #F4DA16;
+
+            --text-dark: #FFFFFF;
+            --text-light: #000000;
+            --text-muted: #A0A0A0;
+
+            --border-light: rgba(255, 255, 255, 0.1);
+            --border-dark: rgba(255, 255, 255, 0.2);
+
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-full: 9999px;
+
+            --font-display: 'Roboto', sans-serif;
+            --font-body: 'Roboto', sans-serif;
+
+            --shadow-soft: 0 12px 28px rgba(18, 15, 12, 0.04);
+            --transition-smooth: 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-ink);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* =========================================================
+           NAVBAR
+           ========================================================= */
+        .site-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            width: 100%;
+            background: transparent;
+            border-bottom: none;
+            padding: 1.25rem 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all var(--transition-smooth);
+        }
+
+        .site-nav.scrolled {
+            padding: 0.8rem 4rem;
+            background: var(--surface-glass-strong);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-light);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-logo {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+            transition: height var(--transition-smooth);
+        }
+
+        .site-nav.scrolled .nav-logo {
+            height: 50px;
+        }
+
+        .nav-links {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .nav-link {
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            text-decoration: none;
+            transition: color var(--transition-smooth);
+        }
+
+        .nav-link:hover {
+            color: var(--accent-red);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            border-radius: var(--radius-full);
+            padding: 0.9rem 1.6rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            transition: transform var(--transition-smooth), background var(--transition-smooth), box-shadow var(--transition-smooth), color var(--transition-smooth);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .btn:hover::after {
+            transform: translateX(100%);
+        }
+
+        .btn-accent {
+            background: var(--accent-red);
+            color: #FFFFFF;
+            /* Manter texto branco no botão vermelho */
+        }
+
+        .site-nav .btn-accent {
+            padding: 0.8rem 1.8rem;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            box-shadow: none;
+        }
+
+        .btn-accent:hover {
+            transform: translateY(-3px);
+        }
+
+        .site-nav .btn-accent:hover {
+            box-shadow: none;
+        }
+
+        .btn-outline {
+            background: var(--surface-glass);
+            color: var(--text-dark);
+            border: 1px solid var(--border-dark);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-outline:hover {
+            background: var(--surface-stone);
+            transform: translateY(-2px);
+        }
+
+        /* Background Glows */
+        .bg-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.5;
+            animation: floatGlow 10s ease-in-out infinite alternate;
+        }
+
+        .glow-1 {
+            top: -10%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(222, 36, 39, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+
+        .glow-2 {
+            bottom: -20%;
+            right: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(244, 218, 22, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+            animation-delay: -5s;
+        }
+
+        @keyframes floatGlow {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(5%, 5%) scale(1.05);
+            }
+
+            100% {
+                transform: translate(-5%, -5%) scale(0.95);
+            }
+        }
+
+        /* =========================================================
+           HERO SECTION
+           ========================================================= */
+        .hero-section {
+            padding-top: 7rem;
+            padding-bottom: 6rem;
+            position: relative;
+            background: var(--bg-ink);
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        #light-rays-container {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            /* Acima do fundo, abaixo do conteúdo */
+        }
+
+        .hero-container {
+            position: relative;
+            z-index: 10;
+            /* Conteúdo no topo */
+            max-width: 1280px;
+            /* max-w-7xl */
+            max-width: 1280px;
+            /* max-w-7xl */
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            /* px-6 */
+            display: grid;
+            grid-template-columns: 7fr 5fr;
+            /* lg:col-span-7 and lg:col-span-5 */
+            gap: 2.5rem;
+            /* gap-10 */
+            align-items: center;
+            width: 100%;
+        }
+
+        /* Left Content */
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            /* Match spacing from ref */
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.4rem 1rem;
+            background: rgba(0, 0, 0, 0.05);
+            /* Escuro sutil no fundo branco */
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius-full);
+            color: #5A544F;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.17em;
+            text-transform: uppercase;
+            backdrop-filter: blur(10px);
+            width: fit-content;
+        }
+
+        .bento-section-wrapper .hero-badge {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.1);
+            color: #5A544F;
+        }
+
+        .eyebrow-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: var(--radius-full);
+            background: var(--accent-yellow);
+            box-shadow: 0 0 12px var(--accent-yellow);
+        }
+
+        .hero-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 4.2rem;
+            /* Syncopate é muito larga, diminuindo para caber */
+            line-height: 1.1;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero-description {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            /* gap-4 */
+            margin-top: 2.5rem;
+            /* mt-10 */
+            max-width: 36rem;
+            /* max-w-xl */
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1.5rem;
+            background: var(--bg-deep);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* Right Visual Overlay Component */
+        .hero-visual {
+            position: relative;
+            width: 100%;
+            height: 35rem;
+            /* Aumentado de 28rem para 35rem */
+            border-radius: 1rem;
+            /* rounded-2xl */
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .visual-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 20%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .visual-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(18, 15, 12, 0.8) 0%, rgba(18, 15, 12, 0) 50%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+        }
+
+        .visual-badge {
+            align-self: flex-end;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .visual-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            color: #FFFFFF;
+        }
+
+        .visual-info-row {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .visual-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Floating App/Watermark Badge */
+        .watermark-badge {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--surface-glass-strong);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-light);
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            box-shadow: var(--shadow-soft);
+        }
+
+        /* =========================================================
+           MAGIC BENTO SECTION
+           ========================================================= */
+        .bento-section-wrapper {
+            padding: 8rem 0;
+            background: #FFFFFF;
+            /* Segunda seção branca */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4rem;
+            position: relative;
+            z-index: 20;
+            /* Garantir que fique acima da Hero para a prancha aparecer */
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 600px;
+            padding: 0 1.5rem;
+        }
+
+        .section-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #120F0C;
+            text-transform: uppercase;
+            letter-spacing: -0.04em;
+        }
+
+        .section-subtitle {
+            color: #5A544F;
+            /* Texto muted escuro na seção branca */
+            font-size: 1.1rem;
+        }
+
+        .card-grid {
+            display: grid;
+            gap: 1em;
+            padding: 1em;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .magic-bento-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            aspect-ratio: 4/3;
+            min-height: 200px;
+            width: 100%;
+            padding: 1.5em;
+            border-radius: 24px;
+            border: 1px solid var(--border-light);
+            background: #111111;
+            color: white;
+            overflow: hidden;
+            /* Fix para overflow em transforms 3D */
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
+            backface-visibility: hidden;
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+            --glow-x: 50%;
+            --glow-y: 50%;
+            --glow-intensity: 0;
+            --glow-radius: 350px;
+        }
+
+        .magic-bento-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(222, 36, 39, 0.15);
+            border-color: rgba(222, 36, 39, 0.4);
+        }
+
+        .magic-bento-card__bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 20%;
+            /* Enquadrar cabeça ao centro */
+            z-index: 1;
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .magic-bento-card:hover .magic-bento-card__bg {
+            transform: scale(1.1);
+        }
+
+        .magic-bento-card__overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 100%);
+            z-index: 2;
+        }
+
+        .magic-bento-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 10;
+        }
+
+        .magic-bento-card__label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.4rem 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-full);
+            backdrop-filter: blur(5px);
+        }
+
+        .magic-bento-card__content {
+            z-index: 10;
+        }
+
+        .magic-bento-card__title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .magic-bento-card__description {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+
+        /* Outer Glow Intensity (Glow Bleed) */
+        .magic-bento-card::before {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+                    rgba(222, 36, 39, calc(var(--glow-intensity) * 0.5)) 0%,
+                    transparent 70%);
+            filter: blur(20px);
+            opacity: 1;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        /* Border glow effect (Inner Sharp Light) */
+        .magic-bento-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 2.5px;
+            background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+                    rgba(222, 36, 39, calc(var(--glow-intensity) * 1.0)) 0%,
+                    rgba(222, 36, 39, calc(var(--glow-intensity) * 0.8)) 25%,
+                    rgba(255, 255, 255, calc(var(--glow-intensity) * 0.4)) 50%,
+                    transparent 80%);
+            border-radius: inherit;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 1;
+            z-index: 5;
+            filter: brightness(1.8);
+            will-change: filter;
+        }
+
+        /* Global spotlight */
+        .global-spotlight {
+            position: fixed;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle,
+                    rgba(222, 36, 39, 0.1) 0%,
+                    rgba(222, 36, 39, 0.05) 20%,
+                    transparent 70%);
+            z-index: 200;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+        }
+
+        @media (max-width: 599px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 600px) {
+            .card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .card-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .magic-bento-card:nth-child(3) {
+                grid-column: span 2;
+                grid-row: span 2;
+            }
+
+            .magic-bento-card:nth-child(4) {
+                grid-column: 1 / span 2;
+                grid-row: 2 / span 2;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 2.5rem;
+            }
+
+            .hero-title {
+                font-size: 3.5rem;
+            }
+
+            .watermark-badge {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .site-nav {
+                padding: 1rem 2rem;
+            }
+        }
+
+        /* =========================================================
+           HORIZONTAL GALLERY SECTION
+           ========================================================= */
+        #gallery-section {
+            position: relative;
+            background: #F8F9FA;
+        }
+
+        .gallery-sticky {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Topographic SVG background */
+        .gallery-topo-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            opacity: 0.5;
+        }
+
+        /* Header inside gallery */
+        .gallery-header {
+            position: absolute;
+            top: 4rem;
+            /* Increased from 2.5rem */
+            left: 4rem;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+        }
+
+        .gallery-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #5A544F;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.17em;
+            text-transform: uppercase;
+            padding: 0.4rem 1rem;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(18, 15, 12, 0.08);
+            border-radius: 9999px;
+            backdrop-filter: blur(10px);
+        }
+
+        .gallery-eyebrow-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #F4DA16;
+            box-shadow: 0 0 10px #F4DA16;
+        }
+
+        .gallery-section-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            color: #120F0C;
+            text-transform: uppercase;
+        }
+
+        /* Progress bar */
+        .gallery-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 2px;
+            width: 0%;
+            background: linear-gradient(90deg, #DE2427, #F4DA16);
+            z-index: 20;
+        }
+
+        /* Scroll hint */
+        .gallery-scroll-hint {
+            position: absolute;
+            bottom: 2.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: #8C847D;
+            font-size: 0.7rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .gallery-scroll-line {
+            width: 1px;
+            height: 36px;
+            background: linear-gradient(to bottom, #DE2427, transparent);
+            animation: galleryScrollLine 1.8s ease-in-out infinite;
+        }
+
+        @keyframes galleryScrollLine {
+            0% {
+                transform: scaleY(0);
+                transform-origin: top;
+                opacity: 0;
+            }
+
+            50% {
+                transform: scaleY(1);
+                transform-origin: top;
+                opacity: 1;
+            }
+
+            100% {
+                transform: scaleY(0);
+                transform-origin: bottom;
+                opacity: 0;
+            }
+        }
+
+        /* Horizontal track */
+        .gallery-track {
+            display: flex;
+            align-items: center;
+            gap: 10rem;
+            /* Significantly increased gap between columns */
+            padding: 10rem 40vw 0 10rem;
+            /* Added large right padding to prevent cutting content */
+            will-change: transform;
+        }
+
+        /* Gallery Columns for stacked items */
+        .g-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6rem;
+            /* Increased gap between stacked items */
+            flex-shrink: 0;
+        }
+
+        /* Gallery item sizes */
+        .g-item {
+            flex-shrink: 0;
+            position: relative;
+            cursor: pointer;
+            will-change: transform;
+        }
+
+        .g-item.sz-small {
+            width: 180px;
+            height: 135px;
+        }
+
+        /* Further reduced size */
+        .g-item.sz-large {
+            width: 320px;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Further reduced size */
+        .g-item.sz-tall {
+            width: 320px;
+            height: 480px;
+        }
+
+        .g-item.sz-wide {
+            width: 540px;
+            height: 360px;
+        }
+
+        .g-item.sz-square {
+            width: 380px;
+            height: 380px;
+        }
+
+        .g-item.sz-slim {
+            width: 260px;
+            height: 420px;
+        }
+
+        .g-item.sz-hero {
+            width: 600px;
+            height: 400px;
+        }
+
+        /* Organic vertical offsets */
+        .g-item.nudge-up {
+            margin-top: -80px;
+        }
+
+        .g-item.nudge-down {
+            margin-top: 80px;
+        }
+
+        .g-item.nudge-mid {
+            margin-top: 30px;
+        }
+
+        /* Image wrapper */
+        .g-img-wrap {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(18, 15, 12, 0.08);
+            box-shadow: 0 12px 28px rgba(18, 15, 12, 0.06);
+            background: #E9ECEF;
+            transition: box-shadow 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+        }
+
+        .g-item:hover .g-img-wrap {
+            box-shadow: 0 28px 64px rgba(18, 15, 12, 0.12);
+            transform: translateY(-10px) scale(1.02) rotate(1deg);
+            /* Added subtle rotation on hover */
+        }
+
+        .g-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            /* Slower zoom */
+            filter: saturate(0.95) brightness(1.02);
+        }
+
+        .g-item:hover .g-img-wrap img {
+            transform: scale(1.1);
+            /* Increased zoom depth */
+        }
+
+        /* Subtle rotations and offsets for organic feel */
+        .g-item:nth-child(odd) {
+            transform: rotate(-1deg) translateY(10px);
+        }
+
+        .g-item:nth-child(even) {
+            transform: rotate(1deg) translateY(-15px);
+        }
+
+        .g-col .g-item:nth-child(1) {
+            margin-left: -20px;
+        }
+
+        .g-col .g-item:nth-child(2) {
+            margin-left: 20px;
+        }
+
+        /* Shimmer overlay on hover */
+        .g-img-wrap::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 400ms ease;
+            pointer-events: none;
+        }
+
+        .g-item:hover .g-img-wrap::after {
+            opacity: 1;
+        }
+
+        /* Index badge */
+        .g-index {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 9999px;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #120F0C;
+            z-index: 2;
+        }
+
+        /* Caption */
+        .g-caption {
+            margin-top: 0.9rem;
+            padding: 0 0.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .g-caption-loc {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #120F0C;
+            letter-spacing: 0.01em;
+        }
+
+        .g-caption-date {
+            font-size: 0.7rem;
+            color: #8C847D;
+            letter-spacing: 0.05em;
+        }
+
+        /* Decorative vertical rule */
+        .g-vline {
+            flex-shrink: 0;
+            align-self: stretch;
+            width: 1px;
+            background: rgba(18, 15, 12, 0.08);
+            margin: 60px 1rem;
+        }
+
+        /* Organic vertical offsets */
+        .g-item.nudge-up {
+            margin-top: -80px;
+        }
+
+        .g-item.nudge-down {
+            margin-top: 80px;
+        }
+
+        .g-item.nudge-mid {
+            margin-top: 30px;
+        }
+
+        /* Parallax depth */
+        .g-item.depth-1 {
+            --g-parallax: 0.9;
+        }
+
+        .g-item.depth-2 {
+            --g-parallax: 1.0;
+        }
+
+        .g-item.depth-3 {
+            --g-parallax: 1.12;
+        }
+
+        /* Image wrapper */
+        .g-img-wrap {
+            width: 100%;
+            height: 100%;
+            border-radius: 0px;
+            overflow: hidden;
+            border: 1px solid rgba(18, 15, 12, 0.08);
+            box-shadow: 0 12px 28px rgba(18, 15, 12, 0.06);
+            background: #E9ECEF;
+            transition: box-shadow 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+        }
+
+        /* Hover effects removed */
+
+        .g-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            /* Slower zoom */
+            filter: saturate(0.95) brightness(1.02);
+        }
+
+        /* Subtle rotations and offsets for organic feel */
+        .g-item:nth-child(odd) {
+            transform: rotate(-1deg) translateY(10px);
+        }
+
+        .g-item:nth-child(even) {
+            transform: rotate(1deg) translateY(-15px);
+        }
+
+        .g-col .g-item:nth-child(1) {
+            margin-left: -20px;
+        }
+
+        .g-col .g-item:nth-child(2) {
+            margin-left: 20px;
+        }
+
+        /* Shimmer overlay on hover */
+        .g-img-wrap::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 400ms ease;
+            pointer-events: none;
+        }
+
+        /* Shimmer on hover removed */
+
+        /* Index badge */
+        .g-index {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 9999px;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #120F0C;
+            z-index: 2;
+        }
+
+        /* Caption */
+        .g-caption {
+            margin-top: 0.9rem;
+            padding: 0 0.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .g-caption-loc {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #120F0C;
+            letter-spacing: 0.01em;
+        }
+
+        .g-caption-date {
+            font-size: 0.7rem;
+            color: #8C847D;
+            letter-spacing: 0.05em;
+        }
+
+        /* Decorative vertical rule */
+        .g-vline {
+            flex-shrink: 0;
+            align-self: stretch;
+            width: 1px;
+            background: rgba(18, 15, 12, 0.08);
+            margin: 60px 1rem;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .gallery-track {
+                gap: 4rem;
+                padding: 6rem 2rem 0;
+            }
+
+            .g-col {
+                gap: 3rem;
+            }
+
+            .g-item.sz-small {
+                width: 180px;
+                height: 130px;
+            }
+
+            .g-item.sz-large {
+                width: 280px;
+                height: auto;
+            }
+
+            .g-item.sz-large .g-img-wrap {
+                height: 240px;
+            }
+
+            .gallery-header {
+                left: 2rem;
+                top: 2rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .gallery-section-title {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Editorial Style Overrides for Large Items */
+        .g-item.sz-large .g-img-wrap {
+            height: 300px;
+            margin: 0.8rem 0;
+        }
+
+        .g-item.sz-large .g-img-wrap img {
+            object-position: top;
+        }
+
+        .g-editorial-desc {
+            font-size: 0.90rem;
+            line-height: 1.5;
+            color: #5A544F;
+            font-family: 'Roboto', sans-serif;
+            opacity: 0.85;
+            padding: 0 0.25rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Section Transition Image */
+        .section-transition-image {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            width: 100%;
+        }
+
+        /* Sombra de integração na seção branca */
+        .section-transition-image::after {
+            content: '';
+            position: absolute;
+            top: 48%;
+            /* Posicionada levemente acima para parecer sair debaixo do objeto */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            height: 12px;
+            background: rgba(0, 0, 0, 0.22);
+            filter: blur(6px);
+            border-radius: 50%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .transition-img {
+            width: 300px;
+            /* Tamanho médio */
+            height: auto;
+            filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.12));
+            user-select: none;
+        }
+
+        @media (max-width: 768px) {
+            .transition-img {
+                width: 180px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="site-nav">
+        <div class="nav-brand">
+            <img src="img/logoRL.png" alt="Salvamento Aquático RL" class="nav-logo">
+        </div>
+        <div class="nav-links">
+            <a href="#" class="nav-link">Lorem</a>
+            <a href="#" class="nav-link">Ipsum</a>
+            <a href="#" class="nav-link">Dolor</a>
+            <a href="#" class="nav-link">Sit</a>
+        </div>
+        <button class="btn btn-accent">Lorem Ipsum ↗</button>
+    </nav>
+
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
+
+    <!-- HERO SECTION -->
+    <section class="hero-section">
+        <!-- Light Rays Background -->
+        <div id="light-rays-container"></div>
+
+        <div class="hero-container">
+
+            <!-- LEFT COLUMN -->
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <div class="eyebrow-dot"></div>
+                    Lorem ipsum dolor sit amet
+                </div>
+
+                <h1 class="hero-title">Lorem ipsum dolor sit amet.</h1>
+
+                <p class="hero-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+                    tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.</p>
+
+                <div class="hero-actions">
+                    <button class="btn btn-accent">
+                        <i data-lucide="play" style="width: 18px;"></i> Lorem Ipsum
+                    </button>
+                    <button class="btn btn-outline">
+                        <i data-lucide="compass" style="width: 18px;"></i> Dolor Sit Amet
+                    </button>
+                </div>
+
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <span class="stat-label">Lorem ipsum</span>
+                        <span class="stat-value">1.2M+</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Dolor sit amet</span>
+                        <span class="stat-value">43 min</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Consectetur elit</span>
+                        <span class="stat-value">95k+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="hero-visual">
+                <img src="img/IMG_6608.JPG.jpeg" alt="Hero Featured" class="visual-img">
+
+                <div class="visual-overlay">
+                    <div class="visual-badge">
+                        <i data-lucide="star" style="width: 14px;"></i> Lorem
+                    </div>
+
+                    <div class="visual-info">
+                        <div class="visual-info-row">
+                            <div class="visual-info-item">
+                                <i data-lucide="activity" style="width: 16px; color: var(--accent-red);"></i>
+                                <span>Lorem ipsum • 28 min • Level 2</span>
+                            </div>
+                        </div>
+                        <div class="visual-info-row">
+                            <div class="visual-info-item">
+                                <i data-lucide="heart-pulse" style="width: 16px; color: var(--accent-red);"></i>
+                                <span>Lorem Zone 3-4</span>
+                            </div>
+                            <div class="visual-info-item">
+                                <i data-lucide="flame" style="width: 16px; color: var(--accent-red);"></i>
+                                <span>340 kcal</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Watermark inferior direito -->
+        <div class="watermark-badge">
+            <i data-lucide="triangle" style="width: 16px; color: var(--accent-red);"></i>
+            Lorem in Ipsum
+        </div>
+    </section>
+
+    <!-- BENTO SECTION -->
+    <section class="bento-section-wrapper">
+        <div class="section-transition-image">
+            <img src="img/rescue.png" alt="Salvamento" class="transition-img">
+        </div>
+        <div class="section-header">
+            <div class="hero-badge" style="margin: 0 auto 1.5rem;">
+                <div class="eyebrow-dot"></div>
+                Recursos & Insights
+            </div>
+            <h2 class="section-title">Tecnologia e Performance</h2>
+            <p class="section-subtitle">Descubra como nossa infraestrutura de salvamento aquático utiliza dados e
+                automação para máxima eficiência.</p>
+        </div>
+
+        <div class="card-grid" id="magic-bento-grid">
+            <!-- Cards populated by JS -->
+        </div>
+    </section>
+
+    <!-- =====================================================
+         HORIZONTAL GALLERY SECTION
+    ====================================================== -->
+    <section id="gallery-section">
+        <div class="gallery-sticky">
+
+            <!-- Progress bar -->
+            <div class="gallery-progress" id="galleryProgress"></div>
+
+            <!-- Topographic SVG Background -->
+            <div class="gallery-topo-bg" aria-hidden="true">
+                <svg width="100%" height="100%" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg"
+                    preserveAspectRatio="xMidYMid slice">
+                    <defs>
+                        <style>
+                            .topo {
+                                fill: none;
+                                stroke: rgba(18, 15, 12, 0.06);
+                                stroke-width: 1;
+                            }
+                        </style>
+                    </defs>
+                    <path class="topo" d="M-100,200 Q200,120 500,180 Q800,240 1100,160 Q1300,120 1540,200" />
+                    <path class="topo" d="M-100,240 Q200,160 500,220 Q800,280 1100,200 Q1300,160 1540,240" />
+                    <path class="topo" d="M-100,280 Q200,200 500,260 Q800,320 1100,240 Q1300,200 1540,280" />
+                    <path class="topo" d="M-100,320 Q200,240 500,300 Q800,360 1100,280 Q1300,240 1540,320" />
+                    <path class="topo" d="M-100,360 Q200,280 500,340 Q800,400 1100,320 Q1300,280 1540,360" />
+                    <path class="topo" d="M-100,400 Q200,320 500,380 Q800,440 1100,360 Q1300,320 1540,400" />
+                    <path class="topo" d="M-100,440 Q200,360 500,420 Q800,480 1100,400 Q1300,360 1540,440" />
+                    <path class="topo" d="M-100,480 Q200,400 500,460 Q800,520 1100,440 Q1300,400 1540,480" />
+                    <path class="topo" d="M-100,520 Q200,440 500,500 Q800,560 1100,480 Q1300,440 1540,520" />
+                    <path class="topo" d="M-100,560 Q200,480 500,540 Q800,600 1100,520 Q1300,480 1540,560" />
+                    <path class="topo" d="M-100,600 Q200,520 500,580 Q800,640 1100,560 Q1300,520 1540,600" />
+                    <path class="topo" d="M-100,640 Q200,560 500,620 Q800,680 1100,600 Q1300,560 1540,640" />
+                    <path class="topo" d="M-100,680 Q200,600 500,660 Q800,720 1100,640 Q1300,600 1540,680" />
+                    <path class="topo" d="M-100,720 Q200,640 500,700 Q800,760 1100,680 Q1300,640 1540,720" />
+                    <path class="topo" d="M300,100 Q480,60 640,110 Q800,160 920,90 Q1040,20 1200,80" />
+                    <path class="topo" d="M300,130 Q480,90 640,140 Q800,190 920,120 Q1040,50 1200,110" />
+                    <path class="topo"
+                        d="M0,760 Q180,720 360,770 Q560,820 720,760 Q900,700 1100,760 Q1300,820 1440,760" />
+                    <path class="topo"
+                        d="M0,790 Q180,750 360,800 Q560,850 720,790 Q900,730 1100,790 Q1300,850 1440,790" />
+                    <path class="topo"
+                        d="M0,820 Q180,780 360,830 Q560,880 720,820 Q900,760 1100,820 Q1300,880 1440,820" />
+                </svg>
+            </div>
+
+            <!-- Section Header -->
+            <header class="gallery-header">
+                <div class="gallery-eyebrow">
+                    <div class="gallery-eyebrow-dot"></div>
+                    Portfolio
+                </div>
+                <h2 class="gallery-section-title">Momentos em Campo</h2>
+            </header>
+
+            <!-- Topographic SVG Background -->
+            <div class="gallery-topo-bg" aria-hidden="true">
+                <svg width="100%" height="100%" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg"
+                    preserveAspectRatio="xMidYMid slice">
+                    <defs>
+                        <style>
+                            .topo {
+                                fill: none;
+                                stroke: rgba(18, 15, 12, 0.06);
+                                stroke-width: 1;
+                            }
+                        </style>
+                    </defs>
+                    <path class="topo" d="M-100,200 Q200,120 500,180 Q800,240 1100,160 Q1300,120 1540,200" />
+                    <path class="topo" d="M-100,240 Q200,160 500,220 Q800,280 1100,200 Q1300,160 1540,240" />
+                    <path class="topo" d="M-100,280 Q200,200 500,260 Q800,320 1100,240 Q1300,200 1540,280" />
+                    <path class="topo" d="M-100,320 Q200,240 500,300 Q800,360 1100,280 Q1300,240 1540,320" />
+                    <path class="topo" d="M-100,360 Q200,280 500,340 Q800,400 1100,320 Q1300,280 1540,360" />
+                    <path class="topo" d="M-100,400 Q200,320 500,380 Q800,440 1100,360 Q1300,320 1540,400" />
+                    <path class="topo" d="M-100,440 Q200,360 500,420 Q800,480 1100,400 Q1300,360 1540,440" />
+                    <path class="topo" d="M-100,480 Q200,400 500,460 Q800,520 1100,440 Q1300,400 1540,480" />
+                    <path class="topo" d="M-100,520 Q200,440 500,500 Q800,560 1100,480 Q1300,440 1540,520" />
+                    <path class="topo" d="M-100,560 Q200,480 500,540 Q800,600 1100,520 Q1300,480 1540,560" />
+                    <path class="topo" d="M-100,600 Q200,520 500,580 Q800,640 1100,560 Q1300,520 1540,600" />
+                    <path class="topo" d="M-100,640 Q200,560 500,620 Q800,680 1100,600 Q1300,560 1540,640" />
+                    <path class="topo" d="M-100,680 Q200,600 500,660 Q800,720 1100,640 Q1300,600 1540,680" />
+                    <path class="topo" d="M-100,720 Q200,640 500,700 Q800,760 1100,680 Q1300,640 1540,720" />
+                    <path class="topo" d="M300,100 Q480,60 640,110 Q800,160 920,90 Q1040,20 1200,80" />
+                    <path class="topo" d="M300,130 Q480,90 640,140 Q800,190 920,120 Q1040,50 1200,110" />
+                    <path class="topo"
+                        d="M0,760 Q180,720 360,770 Q560,820 720,760 Q900,700 1100,760 Q1300,820 1440,760" />
+                    <path class="topo"
+                        d="M0,790 Q180,750 360,800 Q560,850 720,790 Q900,730 1100,790 Q1300,850 1440,790" />
+                    <path class="topo"
+                        d="M0,820 Q180,780 360,830 Q560,880 720,820 Q900,760 1100,820 Q1300,880 1440,820" />
+                </svg>
+            </div>
+
+            <!-- Section Header -->
+            <header class="gallery-header">
+                <div class="gallery-eyebrow">
+                    <div class="gallery-eyebrow-dot"></div>
+                    Portfolio
+                </div>
+                <h2 class="gallery-section-title">Momentos em Campo</h2>
+            </header>
+
+            <!-- Horizontal Track -->
+            <div class="gallery-track" id="galleryTrack">
+
+                <!-- Column 01: Two small items stacked -->
+                <div class="g-col">
+                    <article class="g-item sz-small depth-2">
+                        <div class="g-img-wrap">
+                            <span class="g-index">01</span>
+                            <img src="img/IMG_1472.JPG.jpeg" alt="Salvamento aquático" loading="eager">
+                        </div>
+                        <div class="g-caption">
+                            <span class="g-caption-loc">Praia do Flamengo</span>
+                            <span class="g-caption-date">Jan 2025</span>
+                        </div>
+                    </article>
+                    <article class="g-item sz-small depth-3">
+                        <div class="g-img-wrap">
+                            <span class="g-index">02</span>
+                            <img src="img/IMG_1820.JPG.jpeg" alt="Equipe em ação" loading="lazy">
+                        </div>
+                        <div class="g-caption">
+                            <span class="g-caption-loc">Lagoa Rodrigo de Freitas</span>
+                            <span class="g-caption-date">Mar 2025</span>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- Column 02: One large item -->
+                <article class="g-item sz-large depth-1">
+                    <div class="g-caption">
+                        <span class="g-caption-loc">Barra da Tijuca</span>
+                        <span class="g-caption-date">Abr 2025</span>
+                    </div>
+                    <div class="g-img-wrap">
+                        <span class="g-index">03</span>
+                        <img src="img/IMG_1846.JPG.jpeg" alt="Treinamento de resgate" loading="lazy">
+                    </div>
+                    <div class="g-editorial-desc">
+                        Treinamento intensivo de resgate aquático realizado na Barra da Tijuca. A equipe foca em
+                        técnicas de salvamento em mar aberto com condições adversas para garantir a segurança dos
+                        banhistas durante todo o ano.
+                    </div>
+                </article>
+
+                <div class="g-vline" aria-hidden="true"></div>
+
+                <!-- Column 03: Two small items stacked -->
+                <div class="g-col">
+                    <article class="g-item sz-small depth-2">
+                        <div class="g-img-wrap">
+                            <span class="g-index">04</span>
+                            <img src="img/IMG_1870.JPG.jpeg" alt="Guarda-vidas em posição" loading="lazy">
+                        </div>
+                        <div class="g-caption">
+                            <span class="g-caption-loc">Copacabana</span>
+                            <span class="g-caption-date">Maio 2025</span>
+                        </div>
+                    </article>
+                    <article class="g-item sz-small depth-3">
+                        <div class="g-img-wrap">
+                            <span class="g-index">05</span>
+                            <img src="img/IMG_1904.JPG.jpeg" alt="Vista aérea da operação" loading="lazy">
+                        </div>
+                        <div class="g-caption">
+                            <span class="g-caption-loc">Grumari</span>
+                            <span class="g-caption-date">Jun 2025</span>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- Column 04: One large item -->
+                <article class="g-item sz-large depth-1">
+                    <div class="g-caption">
+                        <span class="g-caption-loc">Recreio dos Bandeirantes</span>
+                        <span class="g-caption-date">Jul 2025</span>
+                    </div>
+                    <div class="g-img-wrap">
+                        <span class="g-index">06</span>
+                        <img src="img/IMG_6608.JPG.jpeg" alt="Treinamento de equipe" loading="lazy">
+                    </div>
+                    <div class="g-editorial-desc">
+                        Workshop de coordenação de equipes em situações de emergência. A prática envolve simulações
+                        reais de múltiplos salvamentos simultâneos e comunicação estratégica via rádio para otimizar o
+                        tempo de resposta.
+                    </div>
+                </article>
+
+                <!-- End spacer para garantir margem no final -->
+                <div style="flex-shrink:0; width: 1vw; height: 1px;"></div>
+
+            </div><!-- /.gallery-track -->
+
+            <!-- Scroll hint -->
+            <div class="gallery-scroll-hint" aria-hidden="true">
+                <div class="gallery-scroll-line"></div>
+                <span>Scroll</span>
+            </div>
+
+        </div><!-- /.gallery-sticky -->
+    </section>
+    <!-- /HORIZONTAL GALLERY SECTION -->
+
+    <script type="module">
+        import { Renderer, Program, Triangle, Mesh } from 'https://esm.sh/ogl';
+
+        const hexToRgb = hex => {
+            const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return m ? [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255] : [1, 1, 1];
+        };
+
+        const getAnchorAndDir = (origin, w, h) => {
+            const outside = 0.2;
+            switch (origin) {
+                case 'top-left': return { anchor: [0, -outside * h], dir: [0, 1] };
+                case 'top-right': return { anchor: [w, -outside * h], dir: [0, 1] };
+                case 'left': return { anchor: [-outside * w, 0.5 * h], dir: [1, 0] };
+                case 'right': return { anchor: [(1 + outside) * w, 0.5 * h], dir: [-1, 0] };
+                case 'bottom-left': return { anchor: [0, (1 + outside) * h], dir: [0, -1] };
+                case 'bottom-center': return { anchor: [0.5 * w, (1 + outside) * h], dir: [0, -1] };
+                case 'bottom-right': return { anchor: [w, (1 + outside) * h], dir: [0, -1] };
+                default: return { anchor: [0.5 * w, -outside * h], dir: [0, 1] };
+            }
+        };
+
+        class LightRays {
+            constructor(container, options = {}) {
+                this.container = container;
+                this.options = Object.assign({
+                    raysOrigin: 'top-center',
+                    raysColor: '#DE2427', // Tom avermelhado para combinar com a marca
+                    raysSpeed: 1.5,
+                    lightSpread: 0.8,
+                    rayLength: 1.2,
+                    pulsating: false,
+                    fadeDistance: 0.9,
+                    saturation: 1.0,
+                    followMouse: true,
+                    mouseInfluence: 0.1,
+                    noiseAmount: 0.1,
+                    distortion: 0.05
+                }, options);
+
+                this.mouse = { x: 0.5, y: 0.5 };
+                this.smoothMouse = { x: 0.5, y: 0.5 };
+                this.animationId = null;
+
+                this.init();
+            }
+
+            async init() {
+                await new Promise(resolve => setTimeout(resolve, 10));
+
+                this.renderer = new Renderer({
+                    dpr: Math.min(window.devicePixelRatio, 2),
+                    alpha: true
+                });
+
+                const gl = this.renderer.gl;
+                gl.canvas.style.width = '100%';
+                gl.canvas.style.height = '100%';
+                gl.canvas.style.position = 'absolute';
+                gl.canvas.style.top = '0';
+                gl.canvas.style.left = '0';
+                gl.canvas.style.zIndex = '0';
+
+                this.container.appendChild(gl.canvas);
+
+                const vert = `
+                attribute vec2 position;
+                varying vec2 vUv;
+                void main() {
+                vUv = position * 0.5 + 0.5;
+                gl_Position = vec4(position, 0.0, 1.0);
+                }`;
+
+                const frag = `precision highp float;
+                uniform float iTime;
+                uniform vec2  iResolution;
+                uniform vec2  rayPos;
+                uniform vec2  rayDir;
+                uniform vec3  raysColor;
+                uniform float raysSpeed;
+                uniform float lightSpread;
+                uniform float rayLength;
+                uniform float pulsating;
+                uniform float fadeDistance;
+                uniform float saturation;
+                uniform vec2  mousePos;
+                uniform float mouseInfluence;
+                uniform float noiseAmount;
+                uniform float distortion;
+
+                varying vec2 vUv;
+
+                float noise(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+                }
+
+                float rayStrength(vec2 raySource, vec2 rayRefDirection, vec2 coord, float seedA, float seedB, float speed) {
+                vec2 sourceToCoord = coord - raySource;
+                vec2 dirNorm = normalize(sourceToCoord);
+                float cosAngle = dot(dirNorm, rayRefDirection);
+                float distortedAngle = cosAngle + distortion * sin(iTime * 2.0 + length(sourceToCoord) * 0.01) * 0.2;
+                float spreadFactor = pow(max(distortedAngle, 0.0), 1.0 / max(lightSpread, 0.001));
+                float distance = length(sourceToCoord);
+                float maxDistance = iResolution.x * rayLength;
+                float lengthFalloff = clamp((maxDistance - distance) / maxDistance, 0.0, 1.0);
+                float fadeFalloff = clamp((iResolution.x * fadeDistance - distance) / (iResolution.x * fadeDistance), 0.5, 1.0);
+                float pulse = pulsating > 0.5 ? (0.8 + 0.2 * sin(iTime * speed * 3.0)) : 1.0;
+                float baseStrength = clamp((0.45 + 0.15 * sin(distortedAngle * seedA + iTime * speed)) + (0.3 + 0.2 * cos(-distortedAngle * seedB + iTime * speed)), 0.0, 1.0);
+                return baseStrength * lengthFalloff * fadeFalloff * spreadFactor * pulse;
+                }
+
+                void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+                vec2 coord = vec2(fragCoord.x, iResolution.y - fragCoord.y);
+                vec2 finalRayDir = rayDir;
+                if (mouseInfluence > 0.0) {
+                    vec2 mouseScreenPos = mousePos * iResolution.xy;
+                    vec2 mouseDirection = normalize(mouseScreenPos - rayPos);
+                    finalRayDir = normalize(mix(rayDir, mouseDirection, mouseInfluence));
+                }
+                vec4 rays1 = vec4(1.0) * rayStrength(rayPos, finalRayDir, coord, 36.2214, 21.11349, 1.5 * raysSpeed);
+                vec4 rays2 = vec4(1.0) * rayStrength(rayPos, finalRayDir, coord, 22.3991, 18.0234, 1.1 * raysSpeed);
+                fragColor = rays1 * 0.5 + rays2 * 0.4;
+                if (noiseAmount > 0.0) {
+                    float n = noise(coord * 0.01 + iTime * 0.1);
+                    fragColor.rgb *= (1.0 - noiseAmount + noiseAmount * n);
+                }
+                float brightness = 1.0 - (coord.y / iResolution.y);
+                fragColor.x *= 0.1 + brightness * 0.8;
+                fragColor.y *= 0.3 + brightness * 0.6;
+                fragColor.z *= 0.5 + brightness * 0.5;
+                if (saturation != 1.0) {
+                    float gray = dot(fragColor.rgb, vec3(0.299, 0.587, 0.114));
+                    fragColor.rgb = mix(vec3(gray), fragColor.rgb, saturation);
+                }
+                fragColor.rgb *= raysColor;
+                }
+
+                void main() {
+                vec4 color;
+                mainImage(color, gl_FragCoord.xy);
+                gl_FragColor  = color;
+                }`;
+
+                this.uniforms = {
+                    iTime: { value: 0 },
+                    iResolution: { value: [1, 1] },
+                    rayPos: { value: [0, 0] },
+                    rayDir: { value: [0, 1] },
+                    raysColor: { value: hexToRgb(this.options.raysColor) },
+                    raysSpeed: { value: this.options.raysSpeed },
+                    lightSpread: { value: this.options.lightSpread },
+                    rayLength: { value: this.options.rayLength },
+                    pulsating: { value: this.options.pulsating ? 1.0 : 0.0 },
+                    fadeDistance: { value: this.options.fadeDistance },
+                    saturation: { value: this.options.saturation },
+                    mousePos: { value: [0.5, 0.5] },
+                    mouseInfluence: { value: this.options.mouseInfluence },
+                    noiseAmount: { value: this.options.noiseAmount },
+                    distortion: { value: this.options.distortion }
+                };
+
+                const geometry = new Triangle(gl);
+                const program = new Program(gl, {
+                    vertex: vert,
+                    fragment: frag,
+                    uniforms: this.uniforms
+                });
+                this.mesh = new Mesh(gl, { geometry, program });
+
+                this.updatePlacement();
+                window.addEventListener('resize', () => this.updatePlacement());
+
+                if (this.options.followMouse) {
+                    window.addEventListener('mousemove', (e) => {
+                        const rect = this.container.getBoundingClientRect();
+                        this.mouse.x = (e.clientX - rect.left) / rect.width;
+                        this.mouse.y = (e.clientY - rect.top) / rect.height;
+                    });
+                }
+
+                this.loop = this.loop.bind(this);
+                this.animationId = requestAnimationFrame(this.loop);
+            }
+
+            updatePlacement() {
+                if (!this.renderer) return;
+                this.renderer.dpr = Math.min(window.devicePixelRatio, 2);
+                const wCSS = this.container.clientWidth;
+                const hCSS = this.container.clientHeight;
+                this.renderer.setSize(wCSS, hCSS);
+
+                const dpr = this.renderer.dpr;
+                const w = wCSS * dpr;
+                const h = hCSS * dpr;
+
+                this.uniforms.iResolution.value = [w, h];
+                const { anchor, dir } = getAnchorAndDir(this.options.raysOrigin, w, h);
+                this.uniforms.rayPos.value = anchor;
+                this.uniforms.rayDir.value = dir;
+            }
+
+            loop(t) {
+                if (!this.renderer) return;
+                this.uniforms.iTime.value = t * 0.001;
+
+                if (this.options.followMouse && this.options.mouseInfluence > 0.0) {
+                    const smoothing = 0.92;
+                    this.smoothMouse.x = this.smoothMouse.x * smoothing + this.mouse.x * (1 - smoothing);
+                    this.smoothMouse.y = this.smoothMouse.y * smoothing + this.mouse.y * (1 - smoothing);
+                    this.uniforms.mousePos.value = [this.smoothMouse.x, this.smoothMouse.y];
+                }
+
+                this.renderer.render({ scene: this.mesh });
+                this.animationId = requestAnimationFrame(this.loop);
+            }
+        }
+
+        // Initialize LightRays
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            // Navbar scroll effect
+            const nav = document.querySelector('.site-nav');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 20) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
+            });
+
+            // Start LightRays
+            const container = document.getElementById('light-rays-container');
+            if (container) {
+                console.log("Iniciando LightRays no container...");
+                new LightRays(container, {
+                    raysOrigin: 'top-center',
+                    raysColor: '#fdeaea',
+                    raysSpeed: 1.5,
+                    lightSpread: 0.8,
+                    rayLength: 1.2,
+                    followMouse: true,
+                    mouseInfluence: 0.1,
+                    noiseAmount: 0.1,
+                    distortion: 0.05,
+                    fadeDistance: 0.9
+                });
+            } else {
+                console.error("Erro: Container #light-rays-container não encontrado!");
+            }
+
+            // MAGIC BENTO IMPLEMENTATION
+            const bentoData = [
+                { title: 'Instrutor Guarda-Vidas', description: 'Capacitação profissional avançada para instrutores de salvamento.', label: 'Formação', img: 'img/IMG_1472.JPG.jpeg' },
+                { title: 'Guarda-vidas', description: 'Treinamento tático e operacional para resgate em mar aberto.', label: 'Operacional', img: 'img/IMG_1820.JPG.jpeg' },
+                { title: 'Cursos HSI/SOBRASA', description: 'Certificações internacionais reconhecidas pela Health & Safety Institute.', label: 'Certificação', img: 'img/IMG_1846.JPG.jpeg' },
+                { title: 'Depoimentos', description: 'O que dizem os heróis que passaram por nossos treinamentos.', label: 'Comunidade', img: 'img/IMG_1870.JPG.jpeg' },
+                { title: 'Galeria', description: 'Registros de missões, treinamentos e eventos oficiais.', label: 'Mídia', img: 'img/IMG_1904.JPG.jpeg' },
+                { title: 'Prevenção e Segurança', description: 'Programas educativos e protocolos de segurança aquática.', label: 'Sobrasa', img: 'img/IMG_6608.JPG.jpeg' }
+            ];
+
+            const grid = document.getElementById('magic-bento-grid');
+            const spotlight = document.createElement('div');
+            spotlight.className = 'global-spotlight';
+            document.body.appendChild(spotlight);
+
+            bentoData.forEach(data => {
+                const card = document.createElement('div');
+                card.className = 'magic-bento-card magic-bento-card--border-glow';
+                card.innerHTML = `
+                    <img src="${data.img}" alt="${data.title}" class="magic-bento-card__bg">
+                    <div class="magic-bento-card__overlay"></div>
+                    <div class="magic-bento-card__header">
+                        <div class="magic-bento-card__label">${data.label}</div>
+                        <i data-lucide="plus" style="width: 16px; opacity: 0.5;"></i>
+                    </div>
+                    <div class="magic-bento-card__content">
+                        <h3 class="magic-bento-card__title">${data.title}</h3>
+                        <p class="magic-bento-card__description">${data.description}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+
+                // Hover effects
+                card.addEventListener('mousemove', (e) => {
+                    // Mantendo o evento caso queira adicionar outros efeitos no futuro, 
+                    // mas removendo a animação de Tilt solicitada.
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    // Removendo reset de Tilt
+                });
+
+                // Click Ripple Effect
+                card.addEventListener('click', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const maxDistance = Math.max(Math.hypot(x, y), Math.hypot(x - rect.width, y - rect.height));
+
+                    const ripple = document.createElement('div');
+                    ripple.style.cssText = `
+                        position: absolute; width: ${maxDistance * 2}px; height: ${maxDistance * 2}px;
+                        border-radius: 50%; background: radial-gradient(circle, rgba(222, 36, 39, 0.4) 0%, transparent 70%);
+                        left: ${x - maxDistance}px; top: ${y - maxDistance}px; pointer-events: none; z-index: 1000;
+                    `;
+                    card.appendChild(ripple);
+                    gsap.fromTo(ripple, { scale: 0, opacity: 1 }, { scale: 1, opacity: 0, duration: 0.8, ease: 'power2.out', onComplete: () => ripple.remove() });
+                });
+            });
+
+            // Global Spotlight Logic
+            document.addEventListener('mousemove', (e) => {
+                const gridRect = grid.getBoundingClientRect();
+                const isInside = e.clientX >= gridRect.left && e.clientX <= gridRect.right &&
+                    e.clientY >= gridRect.top && e.clientY <= gridRect.bottom;
+
+                const cards = grid.querySelectorAll('.magic-bento-card');
+
+                if (isInside) {
+                    gsap.to(spotlight, { left: e.clientX, top: e.clientY, opacity: 1, duration: 0.1 });
+                    cards.forEach(card => {
+                        const rect = card.getBoundingClientRect();
+                        const relX = ((e.clientX - rect.left) / rect.width) * 100;
+                        const relY = ((e.clientY - rect.top) / rect.height) * 100;
+
+                        const dist = Math.hypot(e.clientX - (rect.left + rect.width / 2), e.clientY - (rect.top + rect.height / 2));
+                        const intensity = Math.max(0, 1 - dist / 400);
+
+                        card.style.setProperty('--glow-x', `${relX}%`);
+                        card.style.setProperty('--glow-y', `${relY}%`);
+                        card.style.setProperty('--glow-intensity', intensity);
+                    });
+                } else {
+                    gsap.to(spotlight, { opacity: 0, duration: 0.3 });
+                    cards.forEach(card => card.style.setProperty('--glow-intensity', '0'));
+                }
+            });
+
+            lucide.createIcons();
+        });
+    </script>
+
+    <!-- =====================================================
+         GALLERY GSAP — ScrollTrigger Horizontal Scroll
+    ====================================================== -->
+    <script>
+        window.addEventListener('load', () => {
+            /* Register ScrollTrigger */
+            gsap.registerPlugin(ScrollTrigger);
+
+            const gallerySection = document.getElementById('gallery-section');
+            const track = document.getElementById('galleryTrack');
+            const progressBar = document.getElementById('galleryProgress');
+            const gItems = gsap.utils.toArray('.g-item');
+            const topoBg = gallerySection.querySelector('.gallery-topo-bg');
+
+            if (!gallerySection || !track) return;
+
+            /* ── How far the track must travel ─────────────────── */
+            const getScrollDist = () => {
+                const trackWidth = track.scrollWidth;
+                const viewWidth = window.innerWidth;
+                return Math.max(0, trackWidth - viewWidth);
+            };
+
+            /* ── Make section tall enough for the scroll runway ── */
+            const updateLayout = () => {
+                const dist = getScrollDist();
+                gallerySection.style.height = `${dist + window.innerHeight}px`;
+                ScrollTrigger.refresh();
+            };
+
+            updateLayout();
+
+            /* ── Main horizontal tween ─────────────────────────── */
+            const hTween = gsap.to(track, {
+                x: () => -getScrollDist(),
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: gallerySection,
+                    start: 'top top',
+                    end: () => `+=${getScrollDist()}`,
+                    scrub: 1.2,
+                    pin: '.gallery-sticky',
+                    pinSpacing: true,
+                    invalidateOnRefresh: true,
+                    onUpdate: (self) => {
+                        if (progressBar) progressBar.style.width = `${self.progress * 100}%`;
+                    }
+                }
+            });
+
+            /* ── Parallax per depth layer ──────────────────────── */
+            gItems.forEach((item) => {
+                const speed = parseFloat(getComputedStyle(item).getPropertyValue('--g-parallax')) || 1;
+                const offset = (speed - 1) * 150;
+                gsap.fromTo(item,
+                    { x: -offset },
+                    {
+                        x: offset,
+                        ease: 'none',
+                        scrollTrigger: {
+                            trigger: gallerySection,
+                            start: 'top top',
+                            end: () => `+=${getScrollDist()}`,
+                            scrub: true,
+                            containerAnimation: hTween,
+                            invalidateOnRefresh: true
+                        }
+                    }
+                );
+            });
+
+            /* ── Topo background drifts slower (depth illusion) ── */
+            if (topoBg) {
+                gsap.fromTo(topoBg,
+                    { x: 0 },
+                    {
+                        x: () => getScrollDist() * 0.15,
+                        ease: 'none',
+                        scrollTrigger: {
+                            trigger: gallerySection,
+                            start: 'top top',
+                            end: () => `+=${getScrollDist()}`,
+                            scrub: 2,
+                            invalidateOnRefresh: true
+                        }
+                    }
+                );
+            }
+
+            /* ── Header Reveal ─────────────────────────────── */
+            gsap.from('.gallery-header', {
+                y: 30,
+                opacity: 0,
+                duration: 1.2,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: gallerySection,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                }
+            });
+
+            /* ── Items fade + rise as they enter viewport ──────── */
+            gsap.fromTo(gItems,
+                { opacity: 0, y: 50 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    stagger: 0.08,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: gallerySection,
+                        start: 'top 85%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+
+            /* ── Transition Image Parallax ────────────────────── */
+            const heroSec = document.querySelector('.hero-section');
+            const getBoardOffset = () => {
+                const diff = heroSec.offsetHeight - window.innerHeight;
+                return diff > 0 ? -diff : 0;
+            };
+
+            gsap.set(".section-transition-image", { y: getBoardOffset() });
+
+            gsap.fromTo(".section-transition-image",
+                { y: getBoardOffset }, // Ajusta para ficar no fim do vh se a Hero for maior que a tela
+                {
+                    y: 0, // Chega na posição final exata (metade em cada seção)
+                    ease: "none",
+                    scrollTrigger: {
+                        trigger: heroSec,
+                        start: "top top",
+                        end: "bottom center", // Chega na posição final mais rápido (no meio da tela)
+                        scrub: 1,
+                        invalidateOnRefresh: true
+                    }
+                }
+            );
+
+            /* ── Recalculate on resize (debounced) ─────────────── */
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(updateLayout, 250);
+            });
+        });
+    </script>
+</body>
+
+</html>

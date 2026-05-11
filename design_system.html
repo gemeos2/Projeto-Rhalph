@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design System - Projeto Cinema</title>
+
+    <!-- Fontes (via CSS Local do Relay-Estate) -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        @import url("templates/relay-estate.aura.build/assets/css2_b9721042d3fe.css");
+    </style>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* =========================================================
+           GLOBAL TOKENS & VARIABLES
+           ========================================================= */
+        :root {
+            /* Color System - Branco/Light Theme Baseado no Relay-Estate */
+            --bg-ink: #FFFFFF;
+            --bg-deep: #F8F9FA;
+            --bg-slate: #F1F3F5;
+
+            --surface-cream: #FFFFFF;
+            --surface-stone: #E9ECEF;
+            --surface-glass: rgba(255, 255, 255, 0.72);
+            --surface-glass-strong: rgba(255, 255, 255, 0.88);
+
+            --accent-red: #DE2427;
+            /* Vermelho Resgate */
+            --accent-yellow: #F4DA16;
+            --accent-dark-red: #B51A1C;
+
+            --text-dark: #120F0C;
+            /* Texto principal em temas claros */
+            --text-light: #FFFFFF;
+            /* Texto invertido */
+            --text-muted: #5A544F;
+            --text-muted-dark: #8C847D;
+
+            --border-light: rgba(18, 15, 12, 0.08);
+            --border-dark: rgba(18, 15, 12, 0.16);
+            --border-glass: rgba(255, 255, 255, 0.95);
+
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-full: 9999px;
+
+            --shadow-soft: 0 12px 28px rgba(18, 15, 12, 0.04);
+            --shadow-hover: 0 24px 60px rgba(18, 15, 12, 0.08);
+            --shadow-glow: 0 14px 40px rgba(222, 36, 39, 0.28);
+
+            --transition-smooth: 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+            /* Tipografia */
+            --font-display: 'Roboto', sans-serif;
+            --font-body: 'Roboto', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-deep);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: var(--font-display);
+            font-weight: 500;
+            letter-spacing: -0.045em;
+            line-height: 1.1;
+            color: var(--text-dark);
+        }
+
+        p {
+            line-height: 1.7;
+            color: var(--text-muted);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* =========================================================
+           SHARED UTILITIES & ANIMATIONS
+           ========================================================= */
+        .section-shell {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-bottom: 1.35rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.17em;
+            text-transform: uppercase;
+            padding: 0.4rem 1rem;
+            background: var(--surface-glass);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-full);
+            backdrop-filter: blur(10px);
+        }
+
+        .eyebrow-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: var(--radius-full);
+            background: var(--accent-yellow);
+            box-shadow: 0 0 12px var(--accent-yellow);
+        }
+
+        /* Reveal Animations */
+        @keyframes revealFlow {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.98);
+                filter: blur(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        .reveal-item {
+            opacity: 0;
+            will-change: transform, opacity, filter;
+        }
+
+        .reveal-active {
+            animation: revealFlow 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .delay-100 {
+            animation-delay: 100ms;
+        }
+
+        .delay-200 {
+            animation-delay: 200ms;
+        }
+
+        .delay-300 {
+            animation-delay: 300ms;
+        }
+
+        .delay-400 {
+            animation-delay: 400ms;
+        }
+
+        /* Background Glows */
+        .bg-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.5;
+            animation: floatGlow 10s ease-in-out infinite alternate;
+        }
+
+        .glow-1 {
+            top: -10%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(222, 36, 39, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+
+        .glow-2 {
+            bottom: -20%;
+            right: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(244, 218, 22, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+            animation-delay: -5s;
+        }
+
+        @keyframes floatGlow {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(5%, 5%) scale(1.05);
+            }
+
+            100% {
+                transform: translate(-5%, -5%) scale(0.95);
+            }
+        }
+
+        /* =========================================================
+           COMPONENTS
+           ========================================================= */
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            border-radius: var(--radius-full);
+            padding: 0.9rem 1.6rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            transition: transform var(--transition-bounce), background var(--transition-smooth), box-shadow var(--transition-smooth), color var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .btn:hover::after {
+            transform: translateX(100%);
+        }
+
+        .btn-primary {
+            background: var(--accent-yellow);
+            color: var(--text-dark);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            background: #E5CC14;
+            box-shadow: 0 24px 60px rgba(244, 218, 22, 0.2);
+        }
+
+        .btn-accent {
+            background: var(--accent-red);
+            color: var(--text-light);
+            box-shadow: 0 14px 40px rgba(222, 36, 39, 0.3);
+        }
+
+        .btn-accent:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 50px rgba(222, 36, 39, 0.45);
+        }
+
+        .btn-secondary {
+            background: var(--surface-glass);
+            color: var(--text-dark);
+            border: 1px solid var(--border-dark);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-stone);
+            transform: translateY(-2px);
+        }
+
+        /* Cards */
+        .glass-card {
+            background: var(--surface-glass-strong);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            backdrop-filter: blur(24px);
+            box-shadow: var(--shadow-soft);
+            transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .glass-card-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            transition: transform 0.7s ease;
+        }
+
+        .glass-card:hover .glass-card-img {
+            transform: scale(1.03);
+        }
+
+        /* Inputs */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            letter-spacing: 0.02em;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-dark);
+            background: var(--surface-cream);
+            color: var(--text-dark);
+            font-family: var(--font-body);
+            font-size: 1rem;
+            transition: all var(--transition-smooth);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-red);
+            box-shadow: 0 0 0 4px rgba(222, 36, 39, 0.1);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .badge-neutral {
+            background: var(--surface-stone);
+            color: var(--text-muted);
+        }
+
+        .badge-accent {
+            background: rgba(222, 36, 39, 0.15);
+            color: var(--accent-dark-red);
+            border: 1px solid rgba(222, 36, 39, 0.3);
+        }
+
+        /* Navbar */
+        .site-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            width: 100%;
+            background: var(--bg-ink);
+            border-bottom: 1px solid var(--border-light);
+            padding: 1.25rem 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all var(--transition-smooth);
+        }
+
+        /* Subtle shadow on scroll */
+        .site-nav.scrolled {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 0.8rem 4rem;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .nav-logo {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        .nav-links {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+            font-family: var(--font-body);
+        }
+
+        .nav-link {
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            transition: color var(--transition-smooth);
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-red);
+        }
+
+        .site-nav .btn-accent {
+            padding: 0.8rem 1.8rem;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            box-shadow: none;
+        }
+
+        .site-nav .btn-accent:hover {
+            box-shadow: none;
+            transform: translateY(-2px);
+        }
+
+        /* Layout Grids */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        @media (max-width: 991px) {
+            .hidden-mobile {
+                display: none !important;
+            }
+
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .site-nav {
+                top: 0;
+                width: 100%;
+                border-radius: 0;
+                display: flex;
+                justify-content: space-between;
+                padding: 0.8rem 1.5rem;
+            }
+        }
+
+        /* =========================================================
+           SECTIONS
+           ========================================================= */
+
+        /* Hero Section */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding-top: 6rem;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: clamp(3.5rem, 6vw, 5.5rem);
+            font-weight: 500;
+            letter-spacing: -0.06em;
+            line-height: 1.05;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--text-dark) 40%, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+        }
+
+        .hero-visual {
+            position: absolute;
+            right: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 45%;
+            height: 70vh;
+            z-index: 1;
+        }
+
+        .hero-image-card {
+            width: 100%;
+            height: 100%;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: var(--shadow-hover);
+            position: relative;
+            border: 8px solid var(--surface-cream);
+        }
+
+        .hero-image-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: saturate(1.1) brightness(1.05);
+            transition: transform 10s ease;
+        }
+
+        .hero-image-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .floating-badge {
+            position: absolute;
+            bottom: 40px;
+            left: -40px;
+            background: var(--surface-glass-strong);
+            backdrop-filter: blur(20px);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-glow);
+            border: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        /* System Sections */
+        .ds-section {
+            padding: 6rem 0;
+            border-bottom: 1px solid var(--border-light);
+            position: relative;
+        }
+
+        .ds-header {
+            margin-bottom: 4rem;
+        }
+
+        .ds-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Color Swatches */
+        .color-swatch-card {
+            background: var(--surface-cream);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-light);
+        }
+
+        .color-swatch-box {
+            height: 140px;
+            width: 100%;
+        }
+
+        .color-swatch-info {
+            padding: 1.5rem;
+        }
+
+        .color-swatch-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .color-specs {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted-dark);
+        }
+
+        /* Typography Display */
+        .type-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border-light);
+            align-items: center;
+        }
+
+        .type-specs {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .text-huge {
+            font-size: 4rem;
+            font-weight: 600;
+            font-family: var(--font-display);
+            letter-spacing: -0.05em;
+        }
+
+        .text-h1 {
+            font-size: 3rem;
+            font-weight: 600;
+            font-family: var(--font-display);
+            letter-spacing: -0.04em;
+        }
+
+        .text-h2 {
+            font-size: 2.25rem;
+            font-weight: 500;
+            font-family: var(--font-display);
+            letter-spacing: -0.03em;
+        }
+
+        .text-h3 {
+            font-size: 1.75rem;
+            font-weight: 500;
+            font-family: var(--font-display);
+            letter-spacing: -0.02em;
+        }
+
+        .text-body-lg {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            font-family: var(--font-body);
+        }
+
+        .text-body {
+            font-size: 1rem;
+            line-height: 1.7;
+            font-family: var(--font-body);
+        }
+
+        .text-body-sm {
+            font-size: 0.875rem;
+            line-height: 1.5;
+            font-family: var(--font-body);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
+
+    <!-- NAVBAR -->
+    <nav class="site-nav">
+        <div class="nav-brand">
+            <img src="img/logoRL.png" alt="Salvamento Aquático RL" class="nav-logo">
+        </div>
+        <div class="nav-links hidden-mobile">
+            <a href="#hero" class="nav-link">Work</a>
+            <a href="#typography" class="nav-link">Agents</a>
+            <a href="#colors" class="nav-link">Services</a>
+            <a href="#components" class="nav-link">About</a>
+            <a href="#insights" class="nav-link">Insights</a>
+        </div>
+        <button class="btn btn-accent">Let's Build ↗</button>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section id="hero" class="hero-section">
+        <div class="section-shell"
+            style="width: 100%; display: flex; align-items: center; justify-content: space-between;">
+            <div class="hero-content reveal-item reveal-active delay-100">
+                <div class="eyebrow">
+                    <div class="eyebrow-dot"></div>
+                    Design System 1.0
+                </div>
+                <h1 class="hero-title">A beleza do branco.<br>A precisão do design.</h1>
+                <p class="hero-subtitle">Um design system premium, iluminado e moderno, focado em proporções perfeitas,
+                    glassmorphism sutil e transições incrivelmente fluidas.</p>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-accent">
+                        Explorar Componentes
+                        <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i data-lucide="play-circle" style="width: 18px; height: 18px;"></i>
+                        Ver Animações
+                    </button>
+                </div>
+
+                <div
+                    style="margin-top: 4rem; display: flex; align-items: center; gap: 2rem; border-top: 1px solid var(--border-light); padding-top: 2rem;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 600; font-family: var(--font-display);">40+</div>
+                        <div
+                            style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;">
+                            Componentes</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 600; font-family: var(--font-display);">Roboto
+                        </div>
+                        <div
+                            style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;">
+                            Tipografia</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-visual reveal-item reveal-active delay-300">
+                <div class="hero-image-card">
+                    <!-- Usando placeholder premium como fallback para as imagens das templates -->
+                    <img src="https://images.unsplash.com/photo-1600607686527-6fb886090705?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+                        alt="Arquitetura Branca Premium">
+
+                    <div class="floating-badge">
+                        <div
+                            style="width: 48px; height: 48px; border-radius: 50%; background: var(--accent-red); display: flex; align-items: center; justify-content: center; color: white;">
+                            <i data-lucide="check-circle"></i>
+                        </div>
+                        <div>
+                            <div
+                                style="font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; color: var(--text-dark);">
+                                Pixel Perfect</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Alinhamento absoluto</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TYPOGRAPHY SECTION -->
+    <section id="typography" class="ds-section">
+        <div class="section-shell">
+            <div class="ds-header reveal-item">
+                <div class="eyebrow">
+                    <div class="eyebrow-dot"></div> Fundamentos
+                </div>
+                <h2>Tipografia</h2>
+                <p style="max-width: 600px;">A hierarquia tipográfica utiliza a fonte <strong>Roboto</strong> para
+                    garantir um visual moderno, limpo e profissional, proporcionando uma leitura fluida e sofisticada em
+                    toda a interface.</p>
+            </div>
+
+            <div class="reveal-item delay-100">
+                <div class="type-row">
+                    <div class="type-specs">Display<br>Roboto 700<br>64px / -5%</div>
+                    <div class="text-huge">Criatividade</div>
+                </div>
+                <div class="type-row">
+                    <div class="type-specs">Heading 1<br>Roboto 700<br>48px / -4%</div>
+                    <div class="text-h1">A essência da forma</div>
+                </div>
+                <div class="type-row">
+                    <div class="type-specs">Heading 2<br>Roboto 500<br>36px / -3%</div>
+                    <div class="text-h2">Design focado em detalhes</div>
+                </div>
+                <div class="type-row">
+                    <div class="type-specs">Heading 3<br>Roboto 500<br>28px / -2%</div>
+                    <div class="text-h3">Interfaces que respiram e fluem</div>
+                </div>
+                <div class="type-row">
+                    <div class="type-specs">Body Large<br>Roboto 400<br>20px / 160%</div>
+                    <div class="text-body-lg">Um sistema de design não é apenas uma biblioteca de componentes. É a
+                        linguagem visual que conecta a marca ao usuário através de interações fluidas e consistentes.
+                    </div>
+                </div>
+                <div class="type-row">
+                    <div class="type-specs">Body Regular<br>Roboto 400<br>16px / 170%</div>
+                    <div class="text-body">O uso de espaços em branco não é um desperdício de tela, mas sim o oxigênio
+                        que permite que cada elemento, botão e texto brilhe de forma isolada, criando uma experiência
+                        elegante e sofisticada.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- COLORS SECTION -->
+    <section id="colors" class="ds-section">
+        <div class="section-shell">
+            <div class="ds-header reveal-item">
+                <div class="eyebrow">
+                    <div class="eyebrow-dot"></div> Fundamentos
+                </div>
+                <h2>Sistema de Cores</h2>
+                <p style="max-width: 600px;">Baseado em uma hierarquia clara: <strong>Branco</strong> para a base (tema
+                    claro), <strong>Vermelho</strong> para ações principais e ícones, e <strong>Amarelo</strong> para
+                    destaques secundários.</p>
+            </div>
+
+            <div class="grid-3 reveal-item delay-100">
+                <!-- Swatch 1 -->
+                <div class="color-swatch-card">
+                    <div class="color-swatch-box"
+                        style="background: var(--bg-ink); border-bottom: 1px solid var(--border-light);"></div>
+                    <div class="color-swatch-info">
+                        <h4>Background Ink (Branco)</h4>
+                        <div class="color-specs">
+                            <span>Role: Background Base</span>
+                            <span>HEX: #FFFFFF</span>
+                            <span>RGB: 255, 255, 255</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swatch 2 -->
+                <div class="color-swatch-card">
+                    <div class="color-swatch-box" style="background: var(--text-dark);"></div>
+                    <div class="color-swatch-info">
+                        <h4>Text Dark</h4>
+                        <div class="color-specs">
+                            <span>Role: Títulos / Contraste</span>
+                            <span>HEX: #120F0C</span>
+                            <span>RGB: 18, 15, 12</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swatch 3 -->
+                <div class="color-swatch-card">
+                    <div class="color-swatch-box" style="background: var(--accent-red);"></div>
+                    <div class="color-swatch-info">
+                        <h4>Accent Red</h4>
+                        <div class="color-specs">
+                            <span>Role: Primária / CTA</span>
+                            <span>HEX: #DE2427</span>
+                            <span>RGB: 222, 36, 39</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swatch 4 -->
+                <div class="color-swatch-card">
+                    <div class="color-swatch-box" style="background: var(--bg-deep);"></div>
+                    <div class="color-swatch-info">
+                        <h4>Background Deep</h4>
+                        <div class="color-specs">
+                            <span>Role: Secundária / Hover</span>
+                            <span>HEX: #F8F9FA</span>
+                            <span>RGB: 248, 249, 250</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swatch 5 -->
+                <div class="color-swatch-card">
+                    <div class="color-swatch-box" style="background: var(--text-muted);"></div>
+                    <div class="color-swatch-info">
+                        <h4>Text Muted</h4>
+                        <div class="color-specs">
+                            <span>Role: Corpo de Texto</span>
+                            <span>HEX: #5A544F</span>
+                            <span>RGB: 90, 84, 79</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swatch 6 -->
+                <div class="color-swatch-card">
+                    <div class="color-swatch-box" style="background: var(--accent-yellow);"></div>
+                    <div class="color-swatch-info">
+                        <h4>Accent Yellow</h4>
+                        <div class="color-specs">
+                            <span>Role: Destaque Secundário</span>
+                            <span>HEX: #F4DA16</span>
+                            <span>RGB: 244, 218, 22</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- COMPONENTS SECTION -->
+    <section id="components" class="ds-section">
+        <div class="section-shell">
+            <div class="ds-header reveal-item">
+                <div class="eyebrow">
+                    <div class="eyebrow-dot"></div> UI Kit
+                </div>
+                <h2>Componentes UI</h2>
+                <p style="max-width: 600px;">Uma coleção de elementos de interface responsivos e interativos, projetados
+                    para brilhar no tema claro com glassmorphism.</p>
+            </div>
+
+            <div class="grid-2 reveal-item delay-100">
+                <!-- Coluna Esquerda: Botões e Inputs -->
+                <div style="display: flex; flex-direction: column; gap: 3rem;">
+
+                    <!-- Botões -->
+                    <div class="glass-card">
+                        <h3 style="margin-bottom: 2rem; font-size: 1.5rem;">Botões</h3>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                            <button class="btn btn-accent">Primary Accent</button>
+                            <button class="btn btn-primary">Solid Dark</button>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                            <button class="btn btn-secondary">Secondary Outline</button>
+                            <button class="btn btn-secondary"
+                                style="border: none; background: transparent; box-shadow: none;">Ghost Button</button>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;">
+                            <button class="btn btn-primary">
+                                <i data-lucide="mail" style="width: 18px;"></i> Com Ícone
+                            </button>
+                            <button class="btn btn-accent"
+                                style="border-radius: 50%; width: 50px; height: 50px; padding: 0;">
+                                <i data-lucide="arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Inputs -->
+                    <div class="glass-card">
+                        <h3 style="margin-bottom: 2rem; font-size: 1.5rem;">Formulários</h3>
+
+                        <div class="input-group">
+                            <label class="input-label">Nome Completo</label>
+                            <input type="text" class="input-field" placeholder="Digite seu nome...">
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Endereço de E-mail</label>
+                            <input type="email" class="input-field" placeholder="seu@email.com">
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Assunto</label>
+                            <select class="input-field">
+                                <option>Selecione uma opção...</option>
+                                <option>Suporte</option>
+                                <option>Vendas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna Direita: Cards e Badges -->
+                <div style="display: flex; flex-direction: column; gap: 3rem;">
+
+                    <!-- Badges & Tooltips -->
+                    <div class="glass-card">
+                        <h3 style="margin-bottom: 2rem; font-size: 1.5rem;">Badges & Elementos</h3>
+
+                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                            <span class="badge badge-accent">Novo Recurso</span>
+                            <span class="badge badge-neutral">Em Progresso</span>
+                            <span class="badge badge-neutral"
+                                style="background: #E8F5E9; color: #2E7D32;">Concluído</span>
+                        </div>
+
+                        <div
+                            style="padding: 1.5rem; background: var(--surface-cream); border-radius: var(--radius-md); border: 1px solid var(--border-light); position: relative;">
+                            <h4 style="margin-bottom: 0.5rem;">Card Simples de Informação</h4>
+                            <p style="font-size: 0.9rem;">Este é um estilo de container básico para agrupar informações
+                                menores de forma limpa.</p>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Card -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                            alt="Interior Design" class="glass-card-img">
+
+                        <div class="eyebrow" style="margin-bottom: 0.8rem; padding: 0.3rem 0.8rem; font-size: 0.65rem;">
+                            Residencial</div>
+                        <h3 style="margin-bottom: 0.5rem; font-size: 1.4rem;">Design de Interiores Moderno</h3>
+                        <p style="font-size: 0.9rem; margin-bottom: 1.5rem;">Combinação perfeita entre luz natural,
+                            espaços em branco e móveis curvos premium.</p>
+
+                        <button class="btn btn-secondary" style="width: 100%; border-radius: var(--radius-md);">Ver
+                            Projeto Completo</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SCRIPT PARA ANIMAÇÕES AO SCROLL -->
+    <script>
+        // Inicializar os ícones do Lucide
+        lucide.createIcons();
+
+        // Animação simples de interseção (Reveal no Scroll)
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.15
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('reveal-active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.reveal-item').forEach(el => {
+                // Remover a classe se já estiver lá para engatilhar via observer
+                if (!el.closest('#hero') && !el.closest('.site-nav')) {
+                    el.classList.remove('reveal-active');
+                    observer.observe(el);
+                }
+            });
+
+            // Efeito de nav no scroll
+            const nav = document.querySelector('.site-nav');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 20) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
