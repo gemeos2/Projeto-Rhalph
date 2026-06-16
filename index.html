@@ -1739,8 +1739,8 @@
 
         .preloader-logo-wrap {
             position: relative;
-            width: 160px;
-            height: 200px;
+            width: 130px;
+            height: 162px;
         }
 
         /* Logo base (apagada, serve de contorno antes de qualquer progresso) */
@@ -1846,6 +1846,8 @@
             setProgress(0);
             document.body.style.overflow = 'hidden';
 
+            let pausedAtHalf = false;
+
             const trackImages = () => {
                 // Só agora o DOM inteiro foi parseado: todas as <img> da página já existem.
                 // Imagens com loading="lazy" são ignoradas: só carregam ao rolar a página,
@@ -1856,7 +1858,16 @@
 
                 const onOneLoaded = () => {
                     loaded++;
-                    setProgress((loaded / total) * 90); // reserva os últimos 10% para o evento "load" da janela
+                    const target = (loaded / total) * 90; // reserva os últimos 10% para o evento "load" da janela
+
+                    // Pequena pausa perceptível ao cruzar os 50%, antes de seguir até 90%
+                    if (!pausedAtHalf && target >= 50) {
+                        pausedAtHalf = true;
+                        setProgress(50);
+                        setTimeout(() => setProgress(target), 700);
+                    } else {
+                        setProgress(target);
+                    }
                 };
 
                 realImgs.forEach(img => {
@@ -1868,7 +1879,10 @@
                     }
                 });
 
-                if (realImgs.length === 0) setProgress(60);
+                if (realImgs.length === 0) {
+                    setProgress(50);
+                    setTimeout(() => setProgress(60), 700);
+                }
             };
 
             if (document.readyState === 'loading') {
