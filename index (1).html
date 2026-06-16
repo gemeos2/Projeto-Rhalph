@@ -59,19 +59,13 @@
             padding: 0;
         }
 
-        html,
         body {
             font-family: var(--font-body);
             background: var(--bg-ink);
             color: var(--text-dark);
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
-            /* Garante que nenhum filho cause scroll horizontal */
-            width: 100%;
-            max-width: 100%;
         }
-
-        /* Overflow protection removed from global to preserve desktop behavior */
 
         /* =========================================================
            NAVBAR
@@ -90,8 +84,6 @@
             align-items: center;
             justify-content: space-between;
             transition: all var(--transition-smooth);
-            transform: translateZ(0);
-            /* Force layer */
         }
 
         .site-nav.scrolled {
@@ -101,10 +93,6 @@
             border-bottom: 1px solid var(--border-light);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
-
-
-
-
 
         .nav-brand {
             display: flex;
@@ -123,15 +111,6 @@
             height: 50px;
         }
 
-        @media (max-width: 768px) {
-
-            /* Mantém o logo no mesmo tamanho ao rolar no mobile */
-            .site-nav.scrolled .nav-logo {
-                height: 60px;
-            }
-        }
-
-        /* ── Nav Links (Desktop) ── */
         .nav-links {
             position: absolute;
             left: 50%;
@@ -141,7 +120,7 @@
             gap: 3rem;
         }
 
-        .nav-links .nav-link {
+        .nav-link {
             font-size: 0.8rem;
             font-weight: 500;
             letter-spacing: 0.1em;
@@ -149,171 +128,10 @@
             color: var(--text-dark);
             text-decoration: none;
             transition: color var(--transition-smooth);
-            /* Reset mobile styles for desktop */
-            opacity: 1;
-            transform: none;
-            padding: 0;
-            border-bottom: none;
-        }
-
-        .nav-links .nav-link:hover {
-            color: var(--accent-red);
-        }
-
-        /* ── Hamburger button ── */
-        .nav-hamburger {
-            display: none;
-            /* Escondido por padrão (Desktop) */
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            width: 44px;
-            height: 44px;
-            background: var(--surface-glass);
-            border: 1px solid var(--border-dark);
-            border-radius: var(--radius-full);
-            cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: background var(--transition-smooth), border-color var(--transition-smooth);
-            flex-shrink: 0;
-            position: relative;
-            /* Mantém estabilidade */
-            z-index: 1001;
-        }
-
-        .nav-hamburger:hover {
-            background: var(--surface-stone);
-            border-color: var(--accent-red);
-        }
-
-        .hamburger-line {
-            display: block;
-            width: 18px;
-            height: 1.5px;
-            background: var(--text-dark);
-            border-radius: 2px;
-            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.25s ease,
-                width 0.3s ease;
-            transform-origin: center;
-        }
-
-        .nav-hamburger.is-open .hamburger-line:nth-child(1) {
-            transform: translateY(6.5px) rotate(45deg);
-        }
-
-        .nav-hamburger.is-open .hamburger-line:nth-child(2) {
-            opacity: 0;
-            width: 0;
-        }
-
-        .nav-hamburger.is-open .hamburger-line:nth-child(3) {
-            transform: translateY(-6.5px) rotate(-45deg);
-        }
-
-        /* ── Mobile Drawer ── */
-        .nav-drawer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 999;
-            background: var(--surface-glass-strong);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-light);
-            padding: 5.5rem var(--px-mobile) 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-            transform: translateY(-110%);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-        }
-
-        .nav-drawer.is-open {
-            transform: translateY(0);
-            pointer-events: all;
-        }
-
-        .drawer-footer {
-            margin-top: auto;
-            padding-top: 1rem;
-        }
-
-        .nav-link {
-            font-size: 1.1rem;
-            font-weight: 500;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--text-dark);
-            text-decoration: none;
-            padding: 1.25rem 0;
-            border-bottom: 1px solid var(--border-light);
-            transition: color var(--transition-smooth), padding-left var(--transition-smooth), opacity 0.4s ease, transform 0.4s ease;
-            display: block;
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        .nav-drawer.is-open .nav-link {
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-        }
-
-        .nav-drawer.is-open .nav-link:nth-child(1) {
-            transition-delay: 0.1s;
-        }
-
-        .nav-drawer.is-open .nav-link:nth-child(2) {
-            transition-delay: 0.15s;
-        }
-
-        .nav-drawer.is-open .nav-link:nth-child(3) {
-            transition-delay: 0.2s;
-        }
-
-        .nav-drawer.is-open .nav-link:nth-child(4) {
-            transition-delay: 0.25s;
-        }
-
-        .nav-drawer.is-open .drawer-footer {
-            opacity: 1;
-            transform: translateY(0);
-            transition: all 0.4s ease 0.3s;
-        }
-
-        .nav-link:last-child {
-            border-bottom: none;
         }
 
         .nav-link:hover {
             color: var(--accent-red);
-            padding-left: 0.5rem;
-        }
-
-        .drawer-footer {
-            margin-top: auto;
-            padding-top: 1.5rem;
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        /* Overlay escuro atrás do drawer */
-        .nav-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 998;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.35s ease;
-        }
-
-        .nav-overlay.is-open {
-            opacity: 1;
-            pointer-events: all;
         }
 
         /* Buttons */
@@ -432,7 +250,7 @@
             padding-bottom: 6rem;
             position: relative;
             background: var(--bg-ink);
-            overflow-x: hidden;
+            overflow: hidden;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -664,9 +482,8 @@
             align-items: center;
             gap: 4rem;
             position: relative;
-            /* z-index removido para permitir que a imagem de transição use z-index global */
-            overflow: visible;
-            /* Importante para não cortar a prancha */
+            z-index: 20;
+            /* Garantir que fique acima da Hero para a prancha aparecer */
         }
 
         .section-header {
@@ -705,9 +522,8 @@
             flex-direction: column;
             justify-content: space-between;
             position: relative;
-            aspect-ratio: 16/10;
-            /* Wider aspect ratio for better mobile scanning */
-            min-height: 180px;
+            aspect-ratio: 4/3;
+            min-height: 200px;
             width: 100%;
             padding: 1.5em;
             border-radius: 24px;
@@ -842,12 +658,6 @@
             mix-blend-mode: screen;
         }
 
-        @media (max-width: 768px) {
-            .global-spotlight {
-                display: none !important;
-            }
-        }
-
         @media (max-width: 599px) {
             .card-grid {
                 grid-template-columns: 1fr;
@@ -893,31 +703,8 @@
         }
 
         @media (max-width: 768px) {
-
-            /* Mobile Variables */
-            :root {
-                --px-mobile: 1.5rem;
-            }
-
-            /* Overflow Protection only on mobile */
-            section,
-            .hero-section,
-            #gallery-section {
-                overflow-x: hidden;
-            }
-
-            .bento-section-wrapper {
-                overflow: visible !important;
-            }
-
-            .hero-section {
-                padding-bottom: 3rem !important;
-                min-height: auto !important;
-            }
-
             .hero-stats {
                 grid-template-columns: 1fr;
-                max-width: 100%;
             }
 
             .hero-actions {
@@ -925,111 +712,12 @@
                 align-items: stretch;
             }
 
-            .site-nav,
-            .site-nav.scrolled {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                width: 100% !important;
-                height: 80px !important;
-                z-index: 1000 !important;
-                padding: 0 var(--px-mobile) !important;
-                background: var(--surface-glass-strong) !important;
-                backdrop-filter: blur(12px) !important;
-                -webkit-backdrop-filter: blur(12px) !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: space-between !important;
-                box-sizing: border-box !important;
+            .nav-links {
+                display: none;
             }
 
-            .site-nav.scrolled .nav-logo {
-                height: 50px;
-            }
-
-            .nav-links,
-            .nav-cta-desktop {
-                display: none !important;
-            }
-
-            .nav-hamburger {
-                display: flex !important;
-            }
-
-            /* Fix para o logo no mobile dentro do bloco consolidado */
-            .site-nav.scrolled .nav-logo {
-                height: 60px !important;
-            }
-
-            .hero-container,
-            .hero-content {
-                padding-left: var(--px-mobile) !important;
-                padding-right: var(--px-mobile) !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                box-sizing: border-box;
-            }
-
-            .hero-title {
-                font-size: clamp(1.4rem, 6vw, 2.2rem);
-                letter-spacing: -0.01em;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            }
-
-            .hero-description {
-                font-size: 1rem;
-            }
-
-            .hero-visual {
-                height: 22rem;
-                width: 100%;
-            }
-
-            /* Bento section */
-            .bento-section-wrapper {
-                padding: 5rem 0 4rem;
-                width: 100%;
-                max-width: 100%;
-            }
-
-            .section-header {
-                padding: 0 var(--px-mobile);
-                width: 100%;
-                max-width: 100%;
-                box-sizing: border-box;
-                text-align: left;
-            }
-
-            .section-header .hero-badge {
-                margin: 0 0 1.5rem 0 !important;
-            }
-
-            .card-grid {
-                padding: 0.75em var(--px-mobile);
-                width: 100%;
-                max-width: 100%;
-                box-sizing: border-box;
-            }
-
-            .section-title {
-                font-size: 1.25rem;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            }
-
-            /* Remove margens negativas que causam overflow no mobile */
-            .g-col .g-item:nth-child(1),
-            .g-col .g-item:nth-child(2) {
-                margin-left: 0;
-            }
-
-            /* Ajusta rotações que podem vazar conteúdo */
-            .g-item:nth-child(odd),
-            .g-item:nth-child(even) {
-                transform: none;
+            .site-nav {
+                padding: 1rem 2rem;
             }
         }
 
@@ -1492,81 +1180,37 @@
         @media (max-width: 768px) {
             .gallery-track {
                 gap: 4rem;
-                padding: 6rem var(--px-mobile) 4rem var(--px-mobile);
-                /* Espaço extra no final para scroll lateral fluido */
-                padding-right: 50vw;
+                padding: 6rem 2rem 0;
             }
 
             .g-col {
-                gap: 4rem;
+                gap: 3rem;
             }
 
             .g-item.sz-small {
-                width: 140px;
-                height: 105px;
+                width: 180px;
+                height: 130px;
             }
 
             .g-item.sz-large {
-                width: calc(100vw - (var(--px-mobile) * 2));
-                max-width: 280px;
+                width: 280px;
                 height: auto;
             }
 
             .g-item.sz-large .g-img-wrap {
-                height: 180px;
-            }
-
-            .g-item.sz-tall {
-                width: 180px;
-                height: 260px;
-            }
-
-            .g-item.sz-wide {
-                width: calc(100vw - (var(--px-mobile) * 2));
-                max-width: 280px;
-                height: 180px;
-            }
-
-            .g-item.sz-square {
-                width: 180px;
-                height: 180px;
-            }
-
-            .g-item.sz-slim {
-                width: 140px;
-                height: 220px;
-            }
-
-            .g-item.sz-hero {
-                width: calc(100vw - (var(--px-mobile) * 2));
-                max-width: 300px;
-                height: 180px;
+                height: 240px;
             }
 
             .gallery-header {
-                left: var(--px-mobile);
+                left: 2rem;
                 top: 2rem;
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 0.75rem;
+                gap: 1rem;
             }
 
             .gallery-section-title {
-                font-size: 1.4rem;
-            }
-
-            .gallery-eyebrow {
-                font-size: 0.65rem;
-                padding: 0.35rem 0.8rem;
-            }
-
-            /* Removendo margens negativas e rotações que quebram o layout no mobile */
-            .g-item:nth-child(odd),
-            .g-item:nth-child(even),
-            .g-col .g-item:nth-child(1),
-            .g-col .g-item:nth-child(2) {
-                transform: none !important;
-                margin-left: 0 !important;
+                font-size: 1.8rem;
             }
         }
 
@@ -1596,8 +1240,7 @@
             top: 0;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 100;
-            /* Aumentado para sobrepor inclusive a navbar se necessário */
+            z-index: 1000;
             display: flex;
             justify-content: center;
             pointer-events: none;
@@ -1631,65 +1274,7 @@
 
         @media (max-width: 768px) {
             .transition-img {
-                width: 150px;
-            }
-
-            .section-transition-image {
-                width: 100% !important;
-                left: 0 !important;
-                top: 0 !important;
-                transform: translateY(-50%) !important;
-                position: absolute !important;
-                z-index: 2000 !important;
-                display: flex !important;
-                justify-content: center !important;
-            }
-        }
-
-        /* =========================================================
-           MOBILE EXTRA SMALL (≤ 480px)
-           ========================================================= */
-        @media (max-width: 480px) {
-            .hero-title {
-                font-size: clamp(1.6rem, 7vw, 2.2rem);
-            }
-
-            .hero-description {
-                font-size: 0.95rem;
-            }
-
-            .stat-card {
-                padding: 1rem;
-            }
-
-            .stat-value {
-                font-size: 1.5rem;
-            }
-
-            .section-title {
-                font-size: 1.4rem;
-            }
-
-            .gallery-section-title {
-                font-size: 1.2rem;
-            }
-
-            .btn {
-                font-size: 0.78rem;
-                padding: 0.8rem 1.2rem;
-            }
-
-            /* Proteção extra contra overflow em telas muito pequenas */
-            .hero-container,
-            .section-header,
-            .card-grid {
-                padding-left: var(--px-mobile);
-                padding-right: var(--px-mobile);
-            }
-
-            .bento-section-wrapper {
-                padding-left: 0;
-                padding-right: 0;
+                width: 180px;
             }
         }
     </style>
@@ -1697,47 +1282,19 @@
 
 <body>
 
-    <!-- Overlay escuro -->
-    <div class="nav-overlay" id="navOverlay"></div>
-
     <!-- NAVBAR -->
     <nav class="site-nav">
         <div class="nav-brand">
             <img src="img/logoRL.png" alt="Salvamento Aquático RL" class="nav-logo">
         </div>
-
-        <!-- Desktop Navigation -->
         <div class="nav-links">
             <a href="#" class="nav-link">Lorem</a>
             <a href="#" class="nav-link">Ipsum</a>
             <a href="#" class="nav-link">Dolor</a>
             <a href="#" class="nav-link">Sit</a>
         </div>
-
-        <div style="display:flex; align-items:center; gap:0.75rem;">
-            <!-- CTA Desktop -->
-            <button class="btn btn-accent nav-cta-desktop">Lorem Ipsum ↗</button>
-
-            <!-- Hamburger (Mobile Only) -->
-            <button class="nav-hamburger" id="navHamburger" aria-label="Abrir menu" aria-expanded="false"
-                aria-controls="navDrawer">
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-            </button>
-        </div>
+        <button class="btn btn-accent">Lorem Ipsum ↗</button>
     </nav>
-
-    <!-- DRAWER -->
-    <div class="nav-drawer" id="navDrawer" role="navigation" aria-label="Menu principal">
-        <a href="#" class="nav-link">Lorem</a>
-        <a href="#" class="nav-link">Ipsum</a>
-        <a href="#" class="nav-link">Dolor</a>
-        <a href="#" class="nav-link">Sit</a>
-        <div class="drawer-footer">
-            <button class="btn btn-accent" style="width: 100%; margin-top: 1rem;">Lorem Ipsum ↗</button>
-        </div>
-    </div>
 
     <div class="bg-glow glow-1"></div>
     <div class="bg-glow glow-2"></div>
@@ -1830,22 +1387,18 @@
         <div class="section-transition-image">
             <img src="img/rescue1.png" alt="Salvamento" class="transition-img">
         </div>
-
-        <div class="bento-content-inner"
-            style="width: 100%; max-width: 100%; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; gap: 4rem; box-sizing: border-box;">
-            <div class="section-header" style="width: 100%; box-sizing: border-box;">
-                <div class="hero-badge" style="margin: 0 auto 1.5rem;">
-                    <div class="eyebrow-dot"></div>
-                    Recursos & Insights
-                </div>
-                <h2 class="section-title">Tecnologia e Performance</h2>
-                <p class="section-subtitle">Descubra como nossa infraestrutura de salvamento aquático utiliza dados e
-                    automação para máxima eficiência.</p>
+        <div class="section-header">
+            <div class="hero-badge" style="margin: 0 auto 1.5rem;">
+                <div class="eyebrow-dot"></div>
+                Recursos & Insights
             </div>
+            <h2 class="section-title">Tecnologia e Performance</h2>
+            <p class="section-subtitle">Descubra como nossa infraestrutura de salvamento aquático utiliza dados e
+                automação para máxima eficiência.</p>
+        </div>
 
-            <div class="card-grid" id="magic-bento-grid">
-                <!-- Cards populated by JS -->
-            </div>
+        <div class="card-grid" id="magic-bento-grid">
+            <!-- Cards populated by JS -->
         </div>
     </section>
 
@@ -2285,44 +1838,6 @@
                 }
             });
 
-            // ── Hamburger Menu ──────────────────────────────────
-            const hamburger = document.getElementById('navHamburger');
-            const drawer = document.getElementById('navDrawer');
-            const overlay = document.getElementById('navOverlay');
-
-            const openMenu = () => {
-                hamburger.classList.add('is-open');
-                drawer.classList.add('is-open');
-                overlay.classList.add('is-open');
-                hamburger.setAttribute('aria-expanded', 'true');
-                document.body.style.overflow = 'hidden';
-            };
-
-            const closeMenu = () => {
-                hamburger.classList.remove('is-open');
-                drawer.classList.remove('is-open');
-                overlay.classList.remove('is-open');
-                hamburger.setAttribute('aria-expanded', 'false');
-                document.body.style.overflow = '';
-            };
-
-            hamburger.addEventListener('click', () => {
-                hamburger.classList.contains('is-open') ? closeMenu() : openMenu();
-            });
-
-            // Fecha ao clicar no overlay
-            overlay.addEventListener('click', closeMenu);
-
-            // Fecha ao clicar em qualquer link do drawer
-            drawer.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', closeMenu);
-            });
-
-            // Fecha ao pressionar Escape
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeMenu();
-            });
-
             // Start LightRays
             const container = document.getElementById('light-rays-container');
             if (container) {
@@ -2554,38 +2069,29 @@
                 }
             );
 
-            /* ── Transition Image Parallax (Desktop Only) ────── */
+            /* ── Transition Image Parallax ────────────────────── */
             const heroSec = document.querySelector('.hero-section');
-            let mm = gsap.matchMedia();
+            const getBoardOffset = () => {
+                const diff = heroSec.offsetHeight - window.innerHeight;
+                return diff > 0 ? -diff : 0;
+            };
 
-            mm.add("(min-width: 769px)", () => {
-                const getBoardOffset = () => {
-                    const diff = heroSec.offsetHeight - window.innerHeight;
-                    return diff > 0 ? -diff : 0;
-                };
+            gsap.set(".section-transition-image", { y: getBoardOffset() });
 
-                gsap.set(".section-transition-image", { y: getBoardOffset() });
-
-                gsap.fromTo(".section-transition-image",
-                    { y: getBoardOffset },
-                    {
-                        y: 0,
-                        ease: "none",
-                        scrollTrigger: {
-                            trigger: heroSec,
-                            start: "top top",
-                            end: "bottom center",
-                            scrub: 1,
-                            invalidateOnRefresh: true
-                        }
+            gsap.fromTo(".section-transition-image",
+                { y: getBoardOffset }, // Ajusta para ficar no fim do vh se a Hero for maior que a tela
+                {
+                    y: 0, // Chega na posição final exata (metade em cada seção)
+                    ease: "none",
+                    scrollTrigger: {
+                        trigger: heroSec,
+                        start: "top top",
+                        end: "bottom center", // Chega na posição final mais rápido (no meio da tela)
+                        scrub: 1,
+                        invalidateOnRefresh: true
                     }
-                );
-            });
-
-            mm.add("(max-width: 768px)", () => {
-                // No mobile, deixamos exatamente na metade (yPercent: -50)
-                gsap.set(".section-transition-image", { yPercent: -50, clearProps: "y" });
-            });
+                }
+            );
 
             /* ── Recalculate on resize (debounced) ─────────────── */
             let resizeTimer;
