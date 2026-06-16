@@ -83,19 +83,43 @@
             right: 0;
             z-index: 1000;
             width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            box-sizing: border-box;
             background: transparent;
             border-bottom: none;
-            padding: 1.25rem 4rem;
+            padding: 1.25rem 1.5rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all var(--transition-smooth);
+            transition: padding var(--transition-smooth);
             transform: translateZ(0);
             /* Force layer */
         }
 
+        .site-nav::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            right: auto;
+            width: 100vw;
+            height: 100%;
+            transform: translateX(-50%);
+            z-index: -1;
+            background: transparent;
+            border-bottom: none;
+            opacity: 0;
+            transition: opacity var(--transition-smooth), background var(--transition-smooth);
+            pointer-events: none;
+        }
+
         .site-nav.scrolled {
-            padding: 0.8rem 4rem;
+            padding: 0.8rem 1.5rem;
+        }
+
+        .site-nav.scrolled::before {
+            opacity: 1;
             background: var(--surface-glass-strong);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border-light);
@@ -1692,10 +1716,189 @@
                 padding-right: 0;
             }
         }
+
+        /* =========================================================
+           PRELOADER
+           ========================================================= */
+        #preloader {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: var(--bg-ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        #preloader.is-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .preloader-logo-wrap {
+            position: relative;
+            width: 160px;
+            height: 200px;
+        }
+
+        /* Logo base (apagada, serve de contorno antes de qualquer progresso) */
+        .preloader-logo-base {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.12;
+        }
+
+        .preloader-wave-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Véu que cobre a logo; sobe revelando as cores originais por baixo */
+        .preloader-logo-color-clip {
+            transition: transform 2.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Crista ondulada do véu: oscila horizontalmente para simular líquido */
+        .preloader-wave-crest {
+            fill: var(--bg-ink);
+            animation: preloaderWaveCrest 2.2s ease-in-out infinite;
+        }
+
+        @keyframes preloaderWaveCrest {
+            0% {
+                transform: translateX(0);
+            }
+
+            50% {
+                transform: translateX(-20px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        .preloader-percent {
+            position: absolute;
+            bottom: -2.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- PRELOADER -->
+    <div id="preloader">
+        <div class="preloader-logo-wrap">
+            <img src="img/logoRL.png" alt="" class="preloader-logo-base" aria-hidden="true">
+            <svg class="preloader-wave-svg" viewBox="0 0 160 200" aria-hidden="true">
+                <defs>
+                    <mask id="preloaderLogoMask">
+                        <image href="img/logoRL.png" x="0" y="0" width="160" height="200"
+                            preserveAspectRatio="xMidYMid meet"></image>
+                    </mask>
+                </defs>
+                <!-- Logo nas cores originais, recortada pela própria silhueta -->
+                <g mask="url(#preloaderLogoMask)">
+                    <image href="img/logoRL.png" x="0" y="0" width="160" height="200"
+                        preserveAspectRatio="xMidYMid meet"></image>
+                    <!-- Véu escuro que cobre a parte ainda não "enchida"; sobe revelando a logo colorida -->
+                    <g id="preloaderWaveGroup" class="preloader-logo-color-clip" transform="translate(0, 200)">
+                        <path class="preloader-wave-crest" id="preloaderWaveCrest"
+                            d="M-20,0 Q-10,-6 0,0 T20,0 T40,0 T60,0 T80,0 T100,0 T120,0 T140,0 T160,0 T180,0 L180,-220 L-20,-220 Z">
+                        </path>
+                    </g>
+                </g>
+            </svg>
+            <span class="preloader-percent" id="preloaderPercent">0%</span>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const waveGroup = document.getElementById('preloaderWaveGroup');
+            const percentLabel = document.getElementById('preloaderPercent');
+            const preloader = document.getElementById('preloader');
+
+            const setProgress = (p) => {
+                const clamped = Math.max(0, Math.min(100, p));
+                // O véu cobre tudo em y=200 (0% revelado) e sobe até y=0 (100% revelado)
+                const offsetY = 200 - (clamped / 100) * 200;
+                waveGroup.setAttribute('transform', `translate(0, ${offsetY})`);
+                percentLabel.textContent = Math.round(clamped) + '%';
+            };
+
+            setProgress(0);
+            document.body.style.overflow = 'hidden';
+
+            const trackImages = () => {
+                // Só agora o DOM inteiro foi parseado: todas as <img> da página já existem.
+                // Imagens com loading="lazy" são ignoradas: só carregam ao rolar a página,
+                // então nunca disparariam "load" aqui e travariam o preloader para sempre.
+                const realImgs = Array.from(document.images).filter(img => img.loading !== 'lazy');
+                const total = realImgs.length || 1;
+                let loaded = 0;
+
+                const onOneLoaded = () => {
+                    loaded++;
+                    setProgress((loaded / total) * 90); // reserva os últimos 10% para o evento "load" da janela
+                };
+
+                realImgs.forEach(img => {
+                    if (img.complete) {
+                        onOneLoaded();
+                    } else {
+                        img.addEventListener('load', onOneLoaded, { once: true });
+                        img.addEventListener('error', onOneLoaded, { once: true });
+                    }
+                });
+
+                if (realImgs.length === 0) setProgress(60);
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', trackImages);
+            } else {
+                trackImages();
+            }
+
+            const startTime = Date.now();
+            const minDisplayTime = 3200; // garante que a onda seja perceptível mesmo com cache
+            const waveRiseTime = 2200; // deve casar com a transition do .preloader-logo-color-clip
+
+            const finish = () => {
+                const elapsed = Date.now() - startTime;
+                const wait = Math.max(0, minDisplayTime - elapsed);
+                setTimeout(() => {
+                    setProgress(100);
+                    setTimeout(() => {
+                        preloader.classList.add('is-hidden');
+                        document.body.style.overflow = '';
+                        setTimeout(() => preloader.remove(), 700);
+                    }, waveRiseTime + 200);
+                }, wait);
+            };
+
+            window.addEventListener('load', finish);
+            // Fallback de segurança caso algum recurso nunca dispare load
+            setTimeout(finish, 8000);
+        })();
+    </script>
 
     <!-- Overlay escuro -->
     <div class="nav-overlay" id="navOverlay"></div>

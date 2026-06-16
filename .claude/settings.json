@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python optimize_images.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8765/index.html)",
+      "Bash(node -e \"require\\('playwright'\\)\")",
+      "Bash(node -e \"const {chromium} = require\\('playwright'\\); console.log\\('ok'\\)\")",
+      "Bash(mkdir -p /tmp/pw-verify)",
+      "Read(//tmp/**)",
+      "Bash(cd /tmp/pw-verify && npx playwright install chromium 2>&1 | tail -20)",
+      "Bash(node capture.js)",
+      "PowerShell(Get-ChildItem \"$env:TEMP\\\\pw-verify\" | Select-Object Name)",
+      "PowerShell(cd \"$env:TEMP\\\\pw-verify\"; node capture.js)",
+      "PowerShell(npx playwright install chromium --dry-run 2>&1 | Select-Object -First 10; Get-ChildItem \"$env:LOCALAPPDATA\\\\ms-playwright\" -ErrorAction SilentlyContinue | Select-Object Name)",
+      "PowerShell(cd \"$env:TEMP\\\\pw-verify\"; node capture.js 2>&1 | Out-File -Encoding utf8 result.log; Get-Content result.log)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\" --headless=new --disable-gpu --no-sandbox --screenshot=\"$env:TEMP\\\\pw-verify\\\\chrome_shot0.png\" --window-size=800,900 --virtual-time-budget=300 \"http://localhost:8765/index.html\" 2>&1 | Select-Object -First 30)",
+      "PowerShell(cd \"$env:TEMP\\\\pw-verify\"; npm install ws --no-audit --no-fund 2>&1 | Select-Object -Last 5)",
+      "PowerShell(cd \"$env:TEMP\\\\pw-verify\"; node capture_cdp.js 2>&1)",
+      "Bash(echo \"EXIT:$?\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp\\pw-verify",
+      "c:\\tmp\\pw-verify"
+    ]
+  }
+}
