@@ -422,6 +422,8 @@
             left: -10%;
             width: 50vw;
             height: 50vw;
+            max-width: 480px;
+            max-height: 480px;
             background: radial-gradient(circle, rgba(222, 36, 39, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
         }
 
@@ -430,6 +432,8 @@
             right: -10%;
             width: 60vw;
             height: 60vw;
+            max-width: 560px;
+            max-height: 560px;
             background: radial-gradient(circle, rgba(244, 218, 22, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
             animation-delay: -5s;
         }
@@ -1514,25 +1518,47 @@
 
         /* Responsive Adjustments */
         @media (max-width: 768px) {
+            .gallery-sticky {
+                position: static;
+                height: auto;
+                overflow: visible;
+            }
+
             .gallery-track {
-                gap: 4rem;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 3rem;
                 padding: 6rem var(--px-mobile) 4rem var(--px-mobile);
-                /* Espaço extra no final para scroll lateral fluido */
-                padding-right: 50vw;
+                transform: none !important;
             }
 
             .g-col {
-                gap: 4rem;
+                flex-direction: row;
+                gap: 1rem;
+            }
+
+            .g-col .g-item {
+                flex: 1 1 0;
+                width: auto;
+            }
+
+            .g-vline {
+                display: none;
+            }
+
+            .gallery-progress,
+            .gallery-scroll-hint {
+                display: none;
             }
 
             .g-item.sz-small {
-                width: 140px;
-                height: 105px;
+                width: 100%;
+                height: 135px;
             }
 
             .g-item.sz-large {
-                width: calc(100vw - (var(--px-mobile) * 2));
-                max-width: 280px;
+                width: 100%;
+                max-width: none;
                 height: auto;
             }
 
@@ -1568,8 +1594,10 @@
             }
 
             .gallery-header {
-                left: var(--px-mobile);
-                top: 2rem;
+                position: static;
+                left: auto;
+                top: auto;
+                margin: 0 var(--px-mobile) 1.5rem;
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 0.75rem;
@@ -1722,12 +1750,17 @@
            ========================================================= */
         #preloader {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
             z-index: 99999;
             background: var(--bg-ink);
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
             transition: opacity 0.6s ease, visibility 0.6s ease;
         }
 
@@ -1797,6 +1830,44 @@
             color: var(--text-muted);
             white-space: nowrap;
         }
+
+        /* =========================================================
+           SCROLL REVEAL ANIMATION
+           ========================================================= */
+        @keyframes revealFlow {
+            0% {
+                opacity: 0;
+                transform: translateY(34px) scale(0.985);
+                filter: blur(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        .reveal-item {
+            opacity: 0;
+            will-change: transform, opacity, filter;
+        }
+
+        .reveal-active {
+            animation: revealFlow 1.1s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+        }
+
+        .delay-100 {
+            animation-delay: 100ms;
+        }
+
+        .delay-200 {
+            animation-delay: 200ms;
+        }
+
+        .delay-300 {
+            animation-delay: 300ms;
+        }
     </style>
 </head>
 
@@ -1840,7 +1911,9 @@
                 // O véu cobre tudo em y=200 (0% revelado) e sobe até y=0 (100% revelado)
                 const offsetY = 200 - (clamped / 100) * 200;
                 waveGroup.setAttribute('transform', `translate(0, ${offsetY})`);
-                percentLabel.textContent = Math.round(clamped) + '%';
+                // O label só exibe os marcos 0% / 50% / 100%, mesmo a onda animando continuamente
+                const milestone = clamped >= 100 ? 100 : (clamped >= 50 ? 50 : 0);
+                percentLabel.textContent = milestone + '%';
             };
 
             setProgress(0);
@@ -1968,17 +2041,17 @@
 
             <!-- LEFT COLUMN -->
             <div class="hero-content">
-                <div class="hero-badge">
+                <div class="hero-badge reveal-item">
                     <div class="eyebrow-dot"></div>
                     Lorem ipsum dolor sit amet
                 </div>
 
-                <h1 class="hero-title">Lorem ipsum dolor sit amet.</h1>
+                <h1 class="hero-title reveal-item delay-100">Lorem ipsum dolor sit amet.</h1>
 
-                <p class="hero-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+                <p class="hero-description reveal-item delay-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
                     tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.</p>
 
-                <div class="hero-actions">
+                <div class="hero-actions reveal-item delay-300">
                     <button class="btn btn-accent">
                         <i data-lucide="play" style="width: 18px;"></i> Lorem Ipsum
                     </button>
@@ -1987,7 +2060,7 @@
                     </button>
                 </div>
 
-                <div class="hero-stats">
+                <div class="hero-stats reveal-item delay-300">
                     <div class="stat-card">
                         <span class="stat-label">Lorem ipsum</span>
                         <span class="stat-value">1.2M+</span>
@@ -2004,7 +2077,7 @@
             </div>
 
             <!-- RIGHT COLUMN -->
-            <div class="hero-visual">
+            <div class="hero-visual reveal-item delay-200">
                 <img src="img/IMG 4.jpeg" alt="Hero Featured" class="visual-img">
 
                 <div class="visual-overlay">
@@ -2050,7 +2123,7 @@
 
         <div class="bento-content-inner"
             style="width: 100%; max-width: 100%; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; gap: 4rem; box-sizing: border-box;">
-            <div class="section-header" style="width: 100%; box-sizing: border-box;">
+            <div class="section-header reveal-item" style="width: 100%; box-sizing: border-box;">
                 <div class="hero-badge" style="margin: 0 auto 1.5rem;">
                     <div class="eyebrow-dot"></div>
                     Recursos & Insights
@@ -2060,7 +2133,7 @@
                     automação para máxima eficiência.</p>
             </div>
 
-            <div class="card-grid" id="magic-bento-grid">
+            <div class="card-grid reveal-item delay-200" id="magic-bento-grid">
                 <!-- Cards populated by JS -->
             </div>
         </div>
@@ -2649,6 +2722,18 @@
             });
 
             lucide.createIcons();
+
+            // SCROLL REVEAL OBSERVER
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('reveal-active');
+                        revealObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal-item').forEach((el) => revealObserver.observe(el));
         });
     </script>
 
@@ -2668,78 +2753,95 @@
 
             if (!gallerySection || !track) return;
 
-            /* ── How far the track must travel ─────────────────── */
-            const getScrollDist = () => {
-                const trackWidth = track.scrollWidth;
-                const viewWidth = window.innerWidth;
-                return Math.max(0, trackWidth - viewWidth);
-            };
+            let galleryMM = gsap.matchMedia();
 
-            /* ── Make section tall enough for the scroll runway ── */
-            const updateLayout = () => {
-                const dist = getScrollDist();
-                gallerySection.style.height = `${dist + window.innerHeight}px`;
-                ScrollTrigger.refresh();
-            };
+            /* ── Horizontal scroll track (Desktop/Tablet only) ──── */
+            galleryMM.add("(min-width: 769px)", () => {
+                /* ── How far the track must travel ─────────────────── */
+                const getScrollDist = () => {
+                    const trackWidth = track.scrollWidth;
+                    const viewWidth = window.innerWidth;
+                    return Math.max(0, trackWidth - viewWidth);
+                };
 
-            updateLayout();
+                /* ── Make section tall enough for the scroll runway ── */
+                const updateLayout = () => {
+                    const dist = getScrollDist();
+                    gallerySection.style.height = `${dist + window.innerHeight}px`;
+                    ScrollTrigger.refresh();
+                };
 
-            /* ── Main horizontal tween ─────────────────────────── */
-            const hTween = gsap.to(track, {
-                x: () => -getScrollDist(),
-                ease: 'none',
-                scrollTrigger: {
-                    trigger: gallerySection,
-                    start: 'top top',
-                    end: () => `+=${getScrollDist()}`,
-                    scrub: 1.2,
-                    pin: '.gallery-sticky',
-                    pinSpacing: true,
-                    invalidateOnRefresh: true,
-                    onUpdate: (self) => {
-                        if (progressBar) progressBar.style.width = `${self.progress * 100}%`;
+                updateLayout();
+
+                /* ── Main horizontal tween ─────────────────────────── */
+                const hTween = gsap.to(track, {
+                    x: () => -getScrollDist(),
+                    ease: 'none',
+                    scrollTrigger: {
+                        trigger: gallerySection,
+                        start: 'top top',
+                        end: () => `+=${getScrollDist()}`,
+                        scrub: 1.2,
+                        pin: '.gallery-sticky',
+                        pinSpacing: true,
+                        invalidateOnRefresh: true,
+                        onUpdate: (self) => {
+                            if (progressBar) progressBar.style.width = `${self.progress * 100}%`;
+                        }
                     }
+                });
+
+                /* ── Parallax per depth layer ──────────────────────── */
+                gItems.forEach((item) => {
+                    const speed = parseFloat(getComputedStyle(item).getPropertyValue('--g-parallax')) || 1;
+                    const offset = (speed - 1) * 150;
+                    gsap.fromTo(item,
+                        { x: -offset },
+                        {
+                            x: offset,
+                            ease: 'none',
+                            scrollTrigger: {
+                                trigger: gallerySection,
+                                start: 'top top',
+                                end: () => `+=${getScrollDist()}`,
+                                scrub: true,
+                                containerAnimation: hTween,
+                                invalidateOnRefresh: true
+                            }
+                        }
+                    );
+                });
+
+                /* ── Topo background drifts slower (depth illusion) ── */
+                if (topoBg) {
+                    gsap.fromTo(topoBg,
+                        { x: 0 },
+                        {
+                            x: () => getScrollDist() * 0.15,
+                            ease: 'none',
+                            scrollTrigger: {
+                                trigger: gallerySection,
+                                start: 'top top',
+                                end: () => `+=${getScrollDist()}`,
+                                scrub: 2,
+                                invalidateOnRefresh: true
+                            }
+                        }
+                    );
                 }
-            });
 
-            /* ── Parallax per depth layer ──────────────────────── */
-            gItems.forEach((item) => {
-                const speed = parseFloat(getComputedStyle(item).getPropertyValue('--g-parallax')) || 1;
-                const offset = (speed - 1) * 150;
-                gsap.fromTo(item,
-                    { x: -offset },
-                    {
-                        x: offset,
-                        ease: 'none',
-                        scrollTrigger: {
-                            trigger: gallerySection,
-                            start: 'top top',
-                            end: () => `+=${getScrollDist()}`,
-                            scrub: true,
-                            containerAnimation: hTween,
-                            invalidateOnRefresh: true
-                        }
-                    }
-                );
-            });
+                let resizeTimer;
+                const onResize = () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(updateLayout, 250);
+                };
+                window.addEventListener('resize', onResize);
 
-            /* ── Topo background drifts slower (depth illusion) ── */
-            if (topoBg) {
-                gsap.fromTo(topoBg,
-                    { x: 0 },
-                    {
-                        x: () => getScrollDist() * 0.15,
-                        ease: 'none',
-                        scrollTrigger: {
-                            trigger: gallerySection,
-                            start: 'top top',
-                            end: () => `+=${getScrollDist()}`,
-                            scrub: 2,
-                            invalidateOnRefresh: true
-                        }
-                    }
-                );
-            }
+                return () => {
+                    window.removeEventListener('resize', onResize);
+                    gallerySection.style.height = '';
+                };
+            });
 
             /* ── Header Reveal ─────────────────────────────── */
             gsap.from('.gallery-header', {
@@ -2802,13 +2904,6 @@
             mm.add("(max-width: 768px)", () => {
                 // No mobile, deixamos exatamente na metade (yPercent: -50)
                 gsap.set(".section-transition-image", { yPercent: -50, clearProps: "y" });
-            });
-
-            /* ── Recalculate on resize (debounced) ─────────────── */
-            let resizeTimer;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(updateLayout, 250);
             });
         });
     </script>
