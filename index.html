@@ -74,12 +74,15 @@
         /* Overflow protection removed from global to preserve desktop behavior */
 
         @media (max-width: 768px) {
-            html, body {
+
+            html,
+            body {
                 overflow-x: hidden !important;
                 max-width: 100vw !important;
             }
 
-            .glow-1, .glow-2 {
+            .glow-1,
+            .glow-2 {
                 display: none !important;
             }
         }
@@ -193,6 +196,168 @@
 
         .nav-links .nav-link:hover {
             color: var(--accent-red);
+            padding-left: 0;
+        }
+
+        /* ── Dropdown SIT (Desktop) ── */
+        .nav-dropdown {
+            position: relative;
+        }
+
+        .nav-dropdown-trigger {
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            text-decoration: none;
+            transition: color var(--transition-smooth);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: none;
+            border: none;
+            font-family: inherit;
+            padding: 0;
+        }
+
+        .nav-dropdown-trigger:hover {
+            color: var(--accent-red);
+        }
+
+        .nav-dropdown-trigger svg {
+            width: 12px;
+            height: 12px;
+            transition: transform var(--transition-smooth);
+        }
+
+        .nav-dropdown.is-open .nav-dropdown-trigger svg {
+            transform: rotate(180deg);
+        }
+
+        .nav-dropdown.is-open .nav-dropdown-trigger {
+            color: var(--accent-red);
+        }
+
+        .nav-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 1.2rem);
+            left: 50%;
+            transform: translateX(-50%) translateY(-4px);
+            min-width: 200px;
+            background: var(--surface-glass-strong);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 0.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+            z-index: 1100;
+        }
+
+        .nav-dropdown.is-open .nav-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: all;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .nav-dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            transition: background var(--transition-smooth), color var(--transition-smooth), padding-left var(--transition-smooth);
+            white-space: nowrap;
+        }
+
+        .nav-dropdown-item:hover {
+            background: rgba(222, 36, 39, 0.1);
+            color: var(--accent-red);
+            padding-left: 1.25rem;
+        }
+
+        .nav-dropdown-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 0.35rem 0.5rem;
+        }
+
+        /* Submenu de Cursos */
+        .nav-dropdown-submenu {
+            position: relative;
+        }
+
+        .nav-dropdown-submenu-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            transition: background var(--transition-smooth), color var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .nav-dropdown-submenu-trigger:hover {
+            background: rgba(222, 36, 39, 0.1);
+            color: var(--accent-red);
+        }
+
+        .nav-dropdown-submenu-trigger svg {
+            width: 11px;
+            height: 11px;
+            transition: transform var(--transition-smooth);
+        }
+
+        .nav-dropdown-submenu.is-open .nav-dropdown-submenu-trigger svg {
+            transform: rotate(90deg);
+        }
+
+        .nav-dropdown-submenu.is-open .nav-dropdown-submenu-trigger {
+            background: rgba(222, 36, 39, 0.1);
+            color: var(--accent-red);
+        }
+
+        .nav-dropdown-submenu-panel {
+            position: absolute;
+            top: 0;
+            left: calc(100% + 1rem);
+            min-width: 180px;
+            background: var(--surface-glass-strong);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 0.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateX(-4px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+        }
+
+        .nav-dropdown-submenu.is-open .nav-dropdown-submenu-panel {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: all;
+            transform: translateX(0);
         }
 
         /* ── Hamburger button ── */
@@ -313,6 +478,10 @@
             transition-delay: 0.25s;
         }
 
+        .nav-drawer.is-open .drawer-accordion:nth-child(4) .drawer-accordion-trigger {
+            transition-delay: 0.25s;
+        }
+
         .nav-drawer.is-open .drawer-footer {
             opacity: 1;
             transform: translateY(0);
@@ -326,6 +495,99 @@
         .nav-link:hover {
             color: var(--accent-red);
             padding-left: 0.5rem;
+        }
+
+        /* ── Mobile Drawer: SIT accordion ── */
+        .drawer-accordion {
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .drawer-accordion-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 1.25rem 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            background: none;
+            border: none;
+            font-family: inherit;
+            cursor: pointer;
+            transition: color var(--transition-smooth);
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .nav-drawer.is-open .drawer-accordion-trigger {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+
+        .drawer-accordion-trigger:hover {
+            color: var(--accent-red);
+        }
+
+        .drawer-accordion-trigger svg {
+            width: 16px;
+            height: 16px;
+            transition: transform var(--transition-smooth);
+            flex-shrink: 0;
+        }
+
+        .drawer-accordion.is-open .drawer-accordion-trigger {
+            color: var(--accent-red);
+        }
+
+        .drawer-accordion.is-open .drawer-accordion-trigger svg {
+            transform: rotate(180deg);
+        }
+
+        .drawer-accordion-body {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .drawer-accordion.is-open .drawer-accordion-body {
+            max-height: 600px;
+        }
+
+        .drawer-accordion-subitem {
+            display: block;
+            padding: 0.9rem 0 0.9rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: color var(--transition-smooth), padding-left var(--transition-smooth);
+        }
+
+        .drawer-accordion-subitem:hover {
+            color: var(--accent-red);
+            padding-left: 1.5rem;
+        }
+
+        .drawer-accordion-subitem:last-child {
+            border-bottom: none;
+            padding-bottom: 1.25rem;
+        }
+
+        .drawer-accordion-sublabel {
+            display: block;
+            padding: 0.5rem 0 0.5rem 1rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--accent-red);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .drawer-footer {
@@ -2012,7 +2274,55 @@
             <a href="#" class="nav-link">Lorem</a>
             <a href="#" class="nav-link">Ipsum</a>
             <a href="#" class="nav-link">Dolor</a>
-            <a href="#" class="nav-link">Sit</a>
+
+            <!-- SIT com dropdown -->
+            <div class="nav-dropdown" id="sitDropdown">
+                <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+                    SIT
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="2,4 6,8 10,4"/>
+                    </svg>
+                </button>
+                <div class="nav-dropdown-menu" role="menu">
+
+                    <!-- 1. Cursos (com submenu) -->
+                    <div class="nav-dropdown-submenu">
+                        <span class="nav-dropdown-submenu-trigger">
+                            Cursos
+                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="4,2 8,6 4,10"/>
+                            </svg>
+                        </span>
+                        <div class="nav-dropdown-submenu-panel">
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 1</a>
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 2</a>
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 3</a>
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 4</a>
+                        </div>
+                    </div>
+
+                    <div class="nav-dropdown-divider"></div>
+
+                    <!-- 2. Voluntariado SOBRASA -->
+                    <a href="#" class="nav-dropdown-item" role="menuitem">Voluntariado SOBRASA</a>
+
+                    <div class="nav-dropdown-divider"></div>
+
+                    <!-- 3. Onde já chegamos -->
+                    <a href="#" class="nav-dropdown-item" role="menuitem">Onde já chegamos</a>
+
+                    <div class="nav-dropdown-divider"></div>
+
+                    <!-- 4. Depoimentos -->
+                    <a href="#" class="nav-dropdown-item" role="menuitem">Depoimentos</a>
+
+                    <div class="nav-dropdown-divider"></div>
+
+                    <!-- 5. Galeria -->
+                    <a href="#" class="nav-dropdown-item" role="menuitem">Galeria</a>
+
+                </div>
+            </div>
         </div>
 
         <div style="display:flex; align-items:center; gap:0.75rem;">
@@ -2034,7 +2344,43 @@
         <a href="#" class="nav-link">Lorem</a>
         <a href="#" class="nav-link">Ipsum</a>
         <a href="#" class="nav-link">Dolor</a>
-        <a href="#" class="nav-link">Sit</a>
+
+        <!-- SIT accordion -->
+        <div class="drawer-accordion" id="drawerSitAccordion">
+            <button class="drawer-accordion-trigger" aria-expanded="false" aria-controls="drawerSitBody">
+                SIT
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3,6 8,11 13,6"/>
+                </svg>
+            </button>
+            <div class="drawer-accordion-body" id="drawerSitBody">
+
+                <!-- 1. Cursos -->
+                <span class="drawer-accordion-sublabel">Cursos</span>
+                <a href="#" class="drawer-accordion-subitem">Curso 1</a>
+                <a href="#" class="drawer-accordion-subitem">Curso 2</a>
+                <a href="#" class="drawer-accordion-subitem">Curso 3</a>
+                <a href="#" class="drawer-accordion-subitem">Curso 4</a>
+
+                <!-- 2. Voluntariado SOBRASA -->
+                <span class="drawer-accordion-sublabel">Voluntariado SOBRASA</span>
+                <a href="#" class="drawer-accordion-subitem">Voluntariado SOBRASA</a>
+
+                <!-- 3. Onde já chegamos -->
+                <span class="drawer-accordion-sublabel">Onde já chegamos</span>
+                <a href="#" class="drawer-accordion-subitem">Onde já chegamos</a>
+
+                <!-- 4. Depoimentos -->
+                <span class="drawer-accordion-sublabel">Depoimentos</span>
+                <a href="#" class="drawer-accordion-subitem">Depoimentos</a>
+
+                <!-- 5. Galeria -->
+                <span class="drawer-accordion-sublabel">Galeria</span>
+                <a href="#" class="drawer-accordion-subitem" style="padding-bottom: 1.5rem;">Galeria</a>
+
+            </div>
+        </div>
+
         <div class="drawer-footer">
             <button class="btn btn-accent" style="width: 100%; margin-top: 1rem;">Lorem Ipsum ↗</button>
         </div>
@@ -2059,7 +2405,8 @@
 
                 <h1 class="hero-title reveal-item delay-100">Lorem ipsum dolor sit amet.</h1>
 
-                <p class="hero-description reveal-item delay-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+                <p class="hero-description reveal-item delay-200">Lorem ipsum dolor sit amet, consectetur adipiscing
+                    elit. Sed do eiusmod
                     tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.</p>
 
                 <div class="hero-actions reveal-item delay-300">
@@ -2577,6 +2924,93 @@
                 if (e.key === 'Escape') closeMenu();
             });
 
+            // ── SIT Dropdown (Desktop) ─────────────────────────
+            (function () {
+                const dropdown = document.getElementById('sitDropdown');
+                if (!dropdown) return;
+
+                const trigger = dropdown.querySelector('.nav-dropdown-trigger');
+                const menu = dropdown.querySelector('.nav-dropdown-menu');
+                const submenu = dropdown.querySelector('.nav-dropdown-submenu');
+                const submenuTrigger = submenu ? submenu.querySelector('.nav-dropdown-submenu-trigger') : null;
+
+                let closeTimer = null;
+
+                const openDropdown = () => {
+                    clearTimeout(closeTimer);
+                    dropdown.classList.add('is-open');
+                    trigger.setAttribute('aria-expanded', 'true');
+                };
+
+                const scheduleClose = () => {
+                    closeTimer = setTimeout(() => {
+                        dropdown.classList.remove('is-open');
+                        trigger.setAttribute('aria-expanded', 'false');
+                        if (submenu) closeSubmenu();
+                    }, 120);
+                };
+
+                const openSubmenu = () => {
+                    clearTimeout(closeTimer);
+                    if (submenu) submenu.classList.add('is-open');
+                };
+
+                const closeSubmenu = () => {
+                    if (submenu) submenu.classList.remove('is-open');
+                };
+
+                // Trigger principal
+                trigger.addEventListener('mouseenter', openDropdown);
+                trigger.addEventListener('mouseleave', scheduleClose);
+
+                // Menu principal
+                menu.addEventListener('mouseenter', () => clearTimeout(closeTimer));
+                menu.addEventListener('mouseleave', scheduleClose);
+
+                // Submenu trigger
+                if (submenuTrigger) {
+                    submenuTrigger.addEventListener('mouseenter', openSubmenu);
+                    submenuTrigger.addEventListener('mouseleave', () => {
+                        // Fecha o submenu só se o mouse não foi para o painel
+                        setTimeout(() => {
+                            if (submenu && !submenu.querySelector('.nav-dropdown-submenu-panel:hover') &&
+                                !submenu.matches(':hover')) {
+                                closeSubmenu();
+                            }
+                        }, 80);
+                    });
+                }
+
+                // Painel do submenu
+                if (submenu) {
+                    const panel = submenu.querySelector('.nav-dropdown-submenu-panel');
+                    if (panel) {
+                        panel.addEventListener('mouseenter', () => clearTimeout(closeTimer));
+                        panel.addEventListener('mouseleave', scheduleClose);
+                    }
+                }
+
+                // Fecha ao pressionar Escape
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        dropdown.classList.remove('is-open');
+                        trigger.setAttribute('aria-expanded', 'false');
+                        closeSubmenu();
+                    }
+                });
+            })();
+
+            // ── SIT Accordion (Mobile Drawer) ──────────────────
+            const sitAccordion = document.getElementById('drawerSitAccordion');
+            const sitTrigger = sitAccordion ? sitAccordion.querySelector('.drawer-accordion-trigger') : null;
+
+            if (sitTrigger) {
+                sitTrigger.addEventListener('click', () => {
+                    const isOpen = sitAccordion.classList.toggle('is-open');
+                    sitTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
+
             // Start LightRays
             const container = document.getElementById('light-rays-container');
             if (container) {
@@ -2600,7 +3034,7 @@
             // MAGIC BENTO IMPLEMENTATION
             const bentoData = [
                 { title: 'Instrutor Guarda-Vidas', description: 'Capacitação profissional avançada para instrutores de salvamento.', label: 'Formação', img: 'img/IMG_1472.JPG.jpeg' },
-                { title: 'Guarda-vidas', description: 'Treinamento tático e operacional para resgate em mar aberto.', label: 'Operacional', img: 'img/IMG_1820.JPG.jpeg' },
+                { title: 'Material', description: 'Material didático para os estudos de nossos alunos.', label: 'Material', img: 'img/IMG_1820.JPG.jpeg' },
                 { title: 'Cursos HSI/SOBRASA', description: 'Certificações internacionais reconhecidas pela Health & Safety Institute.', label: 'Certificação', img: 'img/IMG_1846.JPG.jpeg' },
                 { title: 'Depoimentos', description: 'O que dizem os heróis que passaram por nossos treinamentos.', label: 'Comunidade', img: 'img/IMG_1870.JPG.jpeg' },
                 { title: 'Galeria', description: 'Registros de missões, treinamentos e eventos oficiais.', label: 'Mídia', img: 'img/IMG_1904.JPG.jpeg' },
