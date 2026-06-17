@@ -73,6 +73,17 @@
 
         /* Overflow protection removed from global to preserve desktop behavior */
 
+        @media (max-width: 768px) {
+            html, body {
+                overflow-x: hidden !important;
+                max-width: 100vw !important;
+            }
+
+            .glow-1, .glow-2 {
+                display: none !important;
+            }
+        }
+
         /* =========================================================
            NAVBAR
            ========================================================= */
@@ -2147,53 +2158,6 @@
 
             <!-- Progress bar -->
             <div class="gallery-progress" id="galleryProgress"></div>
-
-            <!-- Topographic SVG Background -->
-            <div class="gallery-topo-bg" aria-hidden="true">
-                <svg width="100%" height="100%" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg"
-                    preserveAspectRatio="xMidYMid slice">
-                    <defs>
-                        <style>
-                            .topo {
-                                fill: none;
-                                stroke: rgba(18, 15, 12, 0.06);
-                                stroke-width: 1;
-                            }
-                        </style>
-                    </defs>
-                    <path class="topo" d="M-100,200 Q200,120 500,180 Q800,240 1100,160 Q1300,120 1540,200" />
-                    <path class="topo" d="M-100,240 Q200,160 500,220 Q800,280 1100,200 Q1300,160 1540,240" />
-                    <path class="topo" d="M-100,280 Q200,200 500,260 Q800,320 1100,240 Q1300,200 1540,280" />
-                    <path class="topo" d="M-100,320 Q200,240 500,300 Q800,360 1100,280 Q1300,240 1540,320" />
-                    <path class="topo" d="M-100,360 Q200,280 500,340 Q800,400 1100,320 Q1300,280 1540,360" />
-                    <path class="topo" d="M-100,400 Q200,320 500,380 Q800,440 1100,360 Q1300,320 1540,400" />
-                    <path class="topo" d="M-100,440 Q200,360 500,420 Q800,480 1100,400 Q1300,360 1540,440" />
-                    <path class="topo" d="M-100,480 Q200,400 500,460 Q800,520 1100,440 Q1300,400 1540,480" />
-                    <path class="topo" d="M-100,520 Q200,440 500,500 Q800,560 1100,480 Q1300,440 1540,520" />
-                    <path class="topo" d="M-100,560 Q200,480 500,540 Q800,600 1100,520 Q1300,480 1540,560" />
-                    <path class="topo" d="M-100,600 Q200,520 500,580 Q800,640 1100,560 Q1300,520 1540,600" />
-                    <path class="topo" d="M-100,640 Q200,560 500,620 Q800,680 1100,600 Q1300,560 1540,640" />
-                    <path class="topo" d="M-100,680 Q200,600 500,660 Q800,720 1100,640 Q1300,600 1540,680" />
-                    <path class="topo" d="M-100,720 Q200,640 500,700 Q800,760 1100,680 Q1300,640 1540,720" />
-                    <path class="topo" d="M300,100 Q480,60 640,110 Q800,160 920,90 Q1040,20 1200,80" />
-                    <path class="topo" d="M300,130 Q480,90 640,140 Q800,190 920,120 Q1040,50 1200,110" />
-                    <path class="topo"
-                        d="M0,760 Q180,720 360,770 Q560,820 720,760 Q900,700 1100,760 Q1300,820 1440,760" />
-                    <path class="topo"
-                        d="M0,790 Q180,750 360,800 Q560,850 720,790 Q900,730 1100,790 Q1300,850 1440,790" />
-                    <path class="topo"
-                        d="M0,820 Q180,780 360,830 Q560,880 720,820 Q900,760 1100,820 Q1300,880 1440,820" />
-                </svg>
-            </div>
-
-            <!-- Section Header -->
-            <header class="gallery-header">
-                <div class="gallery-eyebrow">
-                    <div class="gallery-eyebrow-dot"></div>
-                    Portfolio
-                </div>
-                <h2 class="gallery-section-title">Momentos em Campo</h2>
-            </header>
 
             <!-- Topographic SVG Background -->
             <div class="gallery-topo-bg" aria-hidden="true">
