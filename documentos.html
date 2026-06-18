@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto Rhalph - Documentos</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* =========================================================
+           DOCUMENTOS PAGE — Override para fundo branco
+           ========================================================= */
+        html,
+        body {
+            background: #ffffff !important;
+            color: #111111 !important;
+        }
+
+        /* Navbar adaptada — efeito de vidro sempre visível */
+        .site-nav::before {
+            opacity: 1 !important;
+            background: var(--surface-glass-strong) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border-bottom: 1px solid var(--border-light) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* =========================================================
+           PAGE LAYOUT
+           ========================================================= */
+        .docs-page {
+            min-height: 100vh;
+            background: #ffffff;
+            padding-top: 150px;
+            padding-bottom: 80px;
+        }
+
+        .docs-container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* =========================================================
+           PAGE HEADER
+           ========================================================= */
+        .docs-header {
+            margin-bottom: 56px;
+        }
+
+        .docs-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-red);
+            margin-bottom: 16px;
+        }
+
+        .docs-eyebrow-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            flex-shrink: 0;
+        }
+
+        .docs-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: clamp(26px, 4vw, 40px);
+            font-weight: 700;
+            color: #0a0a0a;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin-bottom: 14px;
+        }
+
+        .docs-subtitle {
+            font-family: 'Roboto', sans-serif;
+            font-size: 15px;
+            font-weight: 300;
+            color: #666666;
+            line-height: 1.6;
+        }
+
+        /* =========================================================
+           FILTER TABS
+           ========================================================= */
+        .docs-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .docs-search {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: var(--radius-full);
+            border: 1px solid rgba(0, 0, 0, 0.14);
+            background: transparent;
+            transition: var(--transition-smooth);
+        }
+
+        .docs-search:focus-within {
+            border-color: rgba(0, 0, 0, 0.35);
+        }
+
+        .docs-search i {
+            flex-shrink: 0;
+            color: #aaaaaa;
+            transition: color var(--transition-smooth);
+        }
+
+        .docs-search:focus-within i {
+            color: #333333;
+        }
+
+        .docs-search input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            color: #111111;
+            width: 160px;
+        }
+
+        .docs-search input::placeholder {
+            color: #aaaaaa;
+        }
+
+        @media (max-width: 600px) {
+            .docs-search {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .docs-search input {
+                width: 100%;
+            }
+        }
+
+        .filter-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 16px;
+            border-radius: var(--radius-full);
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            background: transparent;
+            font-family: 'Roboto', sans-serif;
+            font-size: 13px;
+            font-weight: 400;
+            color: #555555;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .filter-btn.active {
+            background: #0a0a0a;
+            border-color: #0a0a0a;
+            color: #ffffff;
+        }
+
+        /* =========================================================
+           DOCUMENT LIST
+           ========================================================= */
+        .docs-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .doc-item {
+            display: grid;
+            grid-template-columns: 44px 1fr auto;
+            align-items: center;
+            gap: 20px;
+            padding: 22px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+            transition: background var(--transition-smooth);
+        }
+
+        .doc-item:first-child {
+            border-top: 1px solid rgba(0, 0, 0, 0.07);
+        }
+
+        .doc-item:hover {
+            background: rgba(0, 0, 0, 0.015);
+            border-radius: var(--radius-sm);
+            margin: 0 -12px;
+            padding: 22px 12px;
+        }
+
+        /* Icon */
+        .doc-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .doc-icon.type-video {
+            background: rgba(0, 0, 0, 0.06);
+            color: #333333;
+        }
+
+        .doc-icon.type-doc {
+            background: rgba(30, 80, 200, 0.08);
+            color: #1e50c8;
+        }
+
+        .doc-icon.type-sheet {
+            background: rgba(20, 150, 80, 0.08);
+            color: #149650;
+        }
+
+        /* Text */
+        .doc-info {
+            min-width: 0;
+        }
+
+        .doc-title {
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #0a0a0a;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .doc-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .doc-desc {
+            font-family: 'Roboto', sans-serif;
+            font-size: 12.5px;
+            font-weight: 300;
+            color: #888888;
+            line-height: 1.4;
+        }
+
+        .doc-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .doc-tag.tag-video {
+            background: rgba(0, 0, 0, 0.06);
+            color: #444444;
+        }
+
+        .doc-tag.tag-doc {
+            background: rgba(30, 80, 200, 0.08);
+            color: #1e50c8;
+        }
+
+        .doc-tag.tag-sheet {
+            background: rgba(20, 150, 80, 0.08);
+            color: #149650;
+        }
+
+        /* Download button */
+        .doc-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius-full);
+            border: 1px solid rgba(0, 0, 0, 0.14);
+            background: transparent;
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: #333333;
+            cursor: pointer;
+            text-decoration: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: var(--transition-smooth);
+        }
+
+        .doc-download:hover {
+            background: #0a0a0a;
+            border-color: #0a0a0a;
+            color: #ffffff;
+        }
+
+        .doc-download:hover svg {
+            stroke: #ffffff;
+        }
+
+        /* =========================================================
+           COUNT LABEL
+           ========================================================= */
+        .docs-count {
+            font-size: 12px;
+            color: #aaaaaa;
+            font-weight: 400;
+            margin-bottom: 16px;
+        }
+
+        /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+        @media (max-width: 600px) {
+            .doc-item {
+                grid-template-columns: 40px 1fr;
+                grid-template-rows: auto auto;
+            }
+
+            .doc-download {
+                grid-column: 2;
+                align-self: start;
+                margin-top: 8px;
+                width: fit-content;
+                padding: 6px 14px;
+            }
+
+            .doc-icon {
+                grid-row: 1;
+            }
+
+            .doc-info {
+                grid-row: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Overlay escuro -->
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <!-- NAVBAR -->
+    <nav class="site-nav">
+        <div class="nav-brand">
+            <a href="index.html">
+                <img src="assets/img/logoRL.png" alt="Salvamento Aquático RL" class="nav-logo">
+            </a>
+        </div>
+
+        <div class="nav-links">
+            <a href="#" class="nav-link">Lorem</a>
+            <a href="#" class="nav-link">Ipsum</a>
+            <a href="#" class="nav-link">Dolor</a>
+
+            <div class="nav-dropdown" id="sitDropdown">
+                <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+                    EXPLORAR
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="2,4 6,8 10,4" />
+                    </svg>
+                </button>
+                <div class="nav-dropdown-menu" role="menu">
+                    <div class="nav-dropdown-submenu">
+                        <span class="nav-dropdown-submenu-trigger">
+                            Cursos
+                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="4,2 8,6 4,10" />
+                            </svg>
+                        </span>
+                        <div class="nav-dropdown-submenu-panel">
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 1</a>
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 2</a>
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 3</a>
+                            <a href="#" class="nav-dropdown-item" role="menuitem">Curso 4</a>
+                        </div>
+                    </div>
+                    <div class="nav-dropdown-divider"></div>
+                    <a href="#" class="nav-dropdown-item" role="menuitem">Voluntariado SOBRASA</a>
+                    <div class="nav-dropdown-divider"></div>
+                    <a href="#" class="nav-dropdown-item" role="menuitem">Onde já chegamos</a>
+                    <div class="nav-dropdown-divider"></div>
+                    <a href="#" class="nav-dropdown-item" role="menuitem">Depoimentos</a>
+                    <div class="nav-dropdown-divider"></div>
+                    <a href="documentos.html" class="nav-dropdown-item" role="menuitem">Documentos</a>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+            <button class="btn btn-accent nav-cta-desktop">Lorem Ipsum ↗</button>
+            <button class="nav-hamburger" id="navHamburger" aria-label="Abrir menu" aria-expanded="false"
+                aria-controls="navDrawer">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- DRAWER -->
+    <div class="nav-drawer" id="navDrawer" role="navigation" aria-label="Menu principal">
+        <a href="#" class="nav-link">Lorem</a>
+        <a href="#" class="nav-link">Ipsum</a>
+        <a href="#" class="nav-link">Dolor</a>
+        <div class="drawer-accordion" id="drawerSitAccordion">
+            <button class="drawer-accordion-trigger" aria-expanded="false" aria-controls="drawerSitBody">
+                EXPLORAR
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="3,6 8,11 13,6" />
+                </svg>
+            </button>
+            <div class="drawer-accordion-body" id="drawerSitBody">
+                <span class="drawer-accordion-sublabel">Cursos</span>
+                <a href="#" class="drawer-accordion-subitem">Curso 1</a>
+                <a href="#" class="drawer-accordion-subitem">Curso 2</a>
+                <a href="#" class="drawer-accordion-subitem">Curso 3</a>
+                <a href="#" class="drawer-accordion-subitem">Curso 4</a>
+                <span class="drawer-accordion-sublabel">Voluntariado SOBRASA</span>
+                <a href="#" class="drawer-accordion-subitem">Voluntariado SOBRASA</a>
+                <span class="drawer-accordion-sublabel">Documentos</span>
+                <a href="documentos.html" class="drawer-accordion-subitem"
+                    style="padding-bottom: 1.5rem;">Documentos</a>
+            </div>
+        </div>
+        <div class="drawer-footer">
+            <button class="btn btn-accent" style="width: 100%; margin-top: 1rem;">Lorem Ipsum ↗</button>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         DOCUMENTS PAGE
+         ========================================================= -->
+    <main class="docs-page">
+        <div class="docs-container">
+
+            <!-- Header -->
+            <div class="docs-header">
+                <div class="docs-eyebrow">
+                    <div class="docs-eyebrow-dot"></div>
+                    Biblioteca de Recursos
+                </div>
+                <h1 class="docs-title">Documentos &amp; Materiais</h1>
+                <p class="docs-subtitle">Acesse manuais, protocolos, vídeos de treinamento e materiais de apoio para
+                    guarda-vidas e instrutores.</p>
+            </div>
+
+            <!-- Filters -->
+            <div class="docs-filters">
+                <button class="filter-btn active" onclick="filterDocs('all', this)">Todos</button>
+                <button class="filter-btn" onclick="filterDocs('video', this)">
+                    <i data-lucide="play-circle" style="width:13px;height:13px;"></i> Vídeo
+                </button>
+                <button class="filter-btn" onclick="filterDocs('doc', this)">
+                    <i data-lucide="file" style="width:13px;height:13px;"></i> Documento
+                </button>
+                <button class="filter-btn" onclick="filterDocs('sheet', this)">
+                    <i data-lucide="table" style="width:13px;height:13px;"></i> Planilha
+                </button>
+                <div class="docs-search">
+                    <i data-lucide="search" style="width:13px;height:13px;"></i>
+                    <input type="text" id="docsSearch" placeholder="Buscar documento..."
+                        oninput="searchDocs(this.value)">
+                </div>
+            </div>
+
+            <!-- Count -->
+            <p class="docs-count" id="docsCount">15 itens</p>
+
+            <!-- Document List -->
+            <div class="docs-list" id="docsList">
+
+                <!-- 01 -->
+                <div class="doc-item" data-type="doc">
+                    <div class="doc-icon type-doc">
+                        <i data-lucide="file" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Manual de Salvamento Aquático — Edição 2025</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-doc"><i data-lucide="file" style="width:10px;height:10px;"></i>
+                                Documento</span>
+                            <span class="doc-desc">Protocolo completo de resgate em mar aberto, rios e piscinas. 148
+                                páginas.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 02 -->
+                <div class="doc-item" data-type="video">
+                    <div class="doc-icon type-video">
+                        <i data-lucide="play-circle" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Técnica de Nado de Resgate — Módulo 1</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-video"><i data-lucide="play-circle"
+                                    style="width:10px;height:10px;"></i> Vídeo</span>
+                            <span class="doc-desc">Demonstração prática das principais técnicas de abordagem da vítima.
+                                22 min.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 03 -->
+                <div class="doc-item" data-type="doc">
+                    <div class="doc-icon type-doc">
+                        <i data-lucide="file" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Protocolo de Primeiros Socorros — RCP e DEA</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-doc"><i data-lucide="file" style="width:10px;height:10px;"></i>
+                                Documento</span>
+                            <span class="doc-desc">Diretrizes atualizadas para ressuscitação cardiopulmonar e uso de
+                                desfibrilador. 36 páginas.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 04 -->
+                <div class="doc-item" data-type="video">
+                    <div class="doc-icon type-video">
+                        <i data-lucide="play-circle" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Simulação de Resgate em Correnteza</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-video"><i data-lucide="play-circle"
+                                    style="width:10px;height:10px;"></i> Vídeo</span>
+                            <span class="doc-desc">Gravação do exercício de campo realizado na Barra da Tijuca com a
+                                turma de 2025. 38 min.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 05 -->
+                <div class="doc-item" data-type="sheet">
+                    <div class="doc-icon type-sheet">
+                        <i data-lucide="table" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Cronograma de Treinamentos — 2º Semestre 2025</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-sheet"><i data-lucide="table" style="width:10px;height:10px;"></i>
+                                Planilha</span>
+                            <span class="doc-desc">Grade completa de datas, locais e instrutores responsáveis por
+                                módulo.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 06 -->
+                <div class="doc-item" data-type="video">
+                    <div class="doc-icon type-video">
+                        <i data-lucide="play-circle" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Palestra: Prevenção de Afogamentos — Dr. Szpilman</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-video"><i data-lucide="play-circle"
+                                    style="width:10px;height:10px;"></i> Vídeo</span>
+                            <span class="doc-desc">Gravação completa da palestra sobre epidemiologia e prevenção. 1h 14
+                                min.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 07 -->
+                <div class="doc-item" data-type="doc">
+                    <div class="doc-icon type-doc">
+                        <i data-lucide="file" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Regulamento Interno — Corpo de Guarda-Vidas</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-doc"><i data-lucide="file" style="width:10px;height:10px;"></i>
+                                Documento</span>
+                            <span class="doc-desc">Normas de conduta, uniformes, postos e responsabilidades
+                                operacionais. 22 páginas.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 08 -->
+                <div class="doc-item" data-type="doc">
+                    <div class="doc-icon type-doc">
+                        <i data-lucide="file" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Relatório de Ocorrências — Temporada Verão 2024/2025</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-doc"><i data-lucide="file" style="width:10px;height:10px;"></i>
+                                Documento</span>
+                            <span class="doc-desc">Consolidado de atendimentos, estatísticas e análise por praia. 54
+                                páginas.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 09 -->
+                <div class="doc-item" data-type="video">
+                    <div class="doc-icon type-video">
+                        <i data-lucide="play-circle" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Uso Correto do Torpedo de Resgate</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-video"><i data-lucide="play-circle"
+                                    style="width:10px;height:10px;"></i> Vídeo</span>
+                            <span class="doc-desc">Tutorial em campo com demonstração de posicionamento e técnica de
+                                arrasto. 11 min.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 10 -->
+                <div class="doc-item" data-type="doc">
+                    <div class="doc-icon type-doc">
+                        <i data-lucide="file" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Classificação de Afogamentos — Escala de Szpilman</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-doc"><i data-lucide="file" style="width:10px;height:10px;"></i>
+                                Documento</span>
+                            <span class="doc-desc">Resumo clínico dos 6 graus de afogamento e condutas de atendimento
+                                imediato. 12 páginas.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 11 -->
+                <div class="doc-item" data-type="sheet">
+                    <div class="doc-icon type-sheet">
+                        <i data-lucide="table" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Checklist de Equipamentos por Posto</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-sheet"><i data-lucide="table" style="width:10px;height:10px;"></i>
+                                Planilha</span>
+                            <span class="doc-desc">Lista de verificação diária de kits de emergência, DEA e materiais de
+                                flutuação.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 12 -->
+                <div class="doc-item" data-type="video">
+                    <div class="doc-icon type-video">
+                        <i data-lucide="play-circle" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Módulo 3 — Resgate com Prancha de Espinha</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-video"><i data-lucide="play-circle"
+                                    style="width:10px;height:10px;"></i> Vídeo</span>
+                            <span class="doc-desc">Imobilização e transporte de vítima com suspeita de trauma cervical.
+                                18 min.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 13 -->
+                <div class="doc-item" data-type="doc">
+                    <div class="doc-icon type-doc">
+                        <i data-lucide="file" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Plano de Contingência — Eventos de Grande Porte</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-doc"><i data-lucide="file" style="width:10px;height:10px;"></i>
+                                Documento</span>
+                            <span class="doc-desc">Protocolo operacional para festivais, competições e eventos com mais
+                                de 5.000 pessoas. 30 páginas.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 14 -->
+                <div class="doc-item" data-type="doc">
+                    <div class="doc-icon type-doc">
+                        <i data-lucide="file" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Apostila — Legislação e Normas SOBRASA</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-doc"><i data-lucide="file" style="width:10px;height:10px;"></i>
+                                Documento</span>
+                            <span class="doc-desc">Compilado das leis federais, estaduais e normas técnicas que regem o
+                                salvamento aquático no Brasil. 60 páginas.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+                <!-- 15 -->
+                <div class="doc-item" data-type="video">
+                    <div class="doc-icon type-video">
+                        <i data-lucide="play-circle" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title">Encerramento do Curso Básico — Formatura Turma 08</div>
+                        <div class="doc-meta">
+                            <span class="doc-tag tag-video"><i data-lucide="play-circle"
+                                    style="width:10px;height:10px;"></i> Vídeo</span>
+                            <span class="doc-desc">Registro audiovisual da cerimônia de conclusão e entrega de
+                                certificados. 45 min.</span>
+                        </div>
+                    </div>
+                    <a href="#" class="doc-download">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Baixar
+                    </a>
+                </div>
+
+            </div><!-- /.docs-list -->
+
+        </div><!-- /.docs-container -->
+    </main>
+
+    <script src="script.js"></script>
+
+    <script>
+        let activeFilter = 'all';
+
+        function filterDocs(type, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeFilter = type;
+            applyFilters();
+        }
+
+        function searchDocs(query) {
+            applyFilters(query);
+        }
+
+        function applyFilters(query) {
+            const q = (query ?? document.getElementById('docsSearch').value).toLowerCase().trim();
+            const items = document.querySelectorAll('.doc-item');
+            let visible = 0;
+
+            items.forEach(item => {
+                const typeMatch = activeFilter === 'all' || item.dataset.type === activeFilter;
+                const text = item.querySelector('.doc-title').textContent.toLowerCase()
+                    + ' ' + item.querySelector('.doc-desc').textContent.toLowerCase();
+                const textMatch = q === '' || text.includes(q);
+                const show = typeMatch && textMatch;
+                item.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            document.getElementById('docsCount').textContent =
+                visible + (visible === 1 ? ' item' : ' itens');
+        }
+    </script>
+
+</body>
+
+</html>

@@ -786,10 +786,10 @@ body {
 
 .hero-title {
     font-family: 'Syncopate', sans-serif;
-    font-size: 4.2rem;
+    font-size: 4rem;
     /* Syncopate é muito larga, diminuindo para caber */
     line-height: 1.1;
-    font-weight: 700;
+    font-weight: 500;
     color: var(--text-dark);
     margin: 0;
     letter-spacing: -0.04em;
@@ -797,7 +797,7 @@ body {
 }
 
 .hero-description {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     line-height: 1.6;
     color: var(--text-muted);
     margin: 0;

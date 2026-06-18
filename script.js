@@ -382,12 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // MAGIC BENTO IMPLEMENTATION
     const bentoData = [
-        { title: 'Instrutor Guarda-Vidas', description: 'Capacitação profissional avançada para instrutores de salvamento.', label: 'Formação', img: 'img/IMG_1472.JPG.jpeg' },
-        { title: 'Material', description: 'Material didático para os estudos de nossos alunos.', label: 'Material', img: 'img/IMG_1820.JPG.jpeg' },
-        { title: 'Cursos HSI/SOBRASA', description: 'Certificações internacionais reconhecidas pela Health & Safety Institute.', label: 'Certificação', img: 'img/IMG_1846.JPG.jpeg' },
-        { title: 'Depoimentos', description: 'O que dizem os heróis que passaram por nossos treinamentos.', label: 'Comunidade', img: 'img/IMG_1870.JPG.jpeg' },
-        { title: 'Galeria', description: 'Registros de missões, treinamentos e eventos oficiais.', label: 'Mídia', img: 'img/IMG_1904.JPG.jpeg' },
-        { title: 'Prevenção e Segurança', description: 'Programas educativos e protocolos de segurança aquática.', label: 'Sobrasa', img: 'img/IMG_6608.JPG.jpeg' }
+        { title: 'Instrutor Guarda-Vidas', description: 'Capacitação profissional avançada para instrutores de salvamento.', label: 'Formação', img: 'assets/img/IMG_1472.JPG.jpeg' },
+        { title: 'Material', description: 'Material didático para os estudos de nossos alunos.', label: 'Material', img: 'assets/img/IMG_1820.JPG.jpeg', href: 'documentos.html' },
+        { title: 'Cursos HSI/SOBRASA', description: 'Certificações internacionais reconhecidas pela Health & Safety Institute.', label: 'Certificação', img: 'assets/img/IMG_1846.JPG.jpeg' },
+        { title: 'Depoimentos', description: 'O que dizem os heróis que passaram por nossos treinamentos.', label: 'Comunidade', img: 'assets/img/IMG_1870.JPG.jpeg' },
+        { title: 'Galeria', description: 'Registros de missões, treinamentos e eventos oficiais.', label: 'Mídia', img: 'assets/img/IMG_1904.JPG.jpeg' },
+        { title: 'Prevenção e Segurança', description: 'Programas educativos e protocolos de segurança aquática.', label: 'Sobrasa', img: 'assets/img/IMG_6608.JPG.jpeg' }
     ];
 
     const grid = document.getElementById('magic-bento-grid');
@@ -396,8 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(spotlight);
 
     bentoData.forEach(data => {
-        const card = document.createElement('div');
+        const card = document.createElement(data.href ? 'a' : 'div');
         card.className = 'magic-bento-card magic-bento-card--border-glow';
+        if (data.href) { card.href = data.href; card.style.textDecoration = 'none'; }
         card.innerHTML = `
             <img src="${data.img}" alt="${data.title}" class="magic-bento-card__bg">
             <div class="magic-bento-card__overlay"></div>
@@ -657,12 +658,12 @@ window.addEventListener('load', () => {
    ========================================================= */
 (function () {
     const logos = [
-        { src: 'img/disneyLogo.png', alt: 'Parceiro 1' },
-        { src: 'img/disneyLogo.png', alt: 'Parceiro 2' },
-        { src: 'img/disneyLogo.png', alt: 'Parceiro 3' },
-        { src: 'img/disneyLogo.png', alt: 'Parceiro 4' },
-        { src: 'img/disneyLogo.png', alt: 'Parceiro 5' },
-        { src: 'img/disneyLogo.png', alt: 'Parceiro 6' },
+        { src: 'assets/img/disneyLogo.png', alt: 'Parceiro 1' },
+        { src: 'assets/img/disneyLogo.png', alt: 'Parceiro 2' },
+        { src: 'assets/img/disneyLogo.png', alt: 'Parceiro 3' },
+        { src: 'assets/img/disneyLogo.png', alt: 'Parceiro 4' },
+        { src: 'assets/img/disneyLogo.png', alt: 'Parceiro 5' },
+        { src: 'assets/img/disneyLogo.png', alt: 'Parceiro 6' },
     ];
 
     const track = document.getElementById('logoLoopInner');
